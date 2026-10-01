@@ -108,7 +108,7 @@ function lanjutKonfirmasi() {
 .keranjang__hapus { background: none; border: none; padding: 0; margin-top: 0.2rem; font-size: 0.76rem; font-weight: 700; color: var(--lb-muted); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .keranjang__hapus:hover { color: var(--lb-danger); }
 .keranjang__qty { display: flex; align-items: center; gap: 0.6rem; grid-column: 2; }
-.keranjang__qty button { width: 1.9rem; height: 1.9rem; border-radius: 50%; border: 1.5px solid var(--lb-line); background: #fff; color: var(--lb-brand-dark); font-weight: 800; cursor: pointer; }
+.keranjang__qty button { width: 2.75rem; height: 2.75rem; border-radius: 50%; border: 1.5px solid var(--lb-line); background: #fff; color: var(--lb-brand-dark); font-weight: 800; font-size: 1.1rem; cursor: pointer; }
 .keranjang__qty button.is-plus { background: var(--lb-brand); border-color: var(--lb-brand); color: #fff; }
 .keranjang__qty span { min-width: 1.2rem; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
 .keranjang__sub { margin: 0; font-weight: 800; font-size: 0.9rem; text-align: right; font-variant-numeric: tabular-nums; }

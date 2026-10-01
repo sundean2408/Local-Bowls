@@ -634,7 +634,7 @@ onMounted(() => loadAll())
 .adm__drawer-close { margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.7); font-size: 1rem; cursor: pointer; }
 
 /* TOPBAR */
-.adm__topbar { height: 4rem; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-inline: 1.25rem; background: #fff; border-bottom: 1px solid var(--lb-line); }
+.adm__topbar { height: 4rem; flex-shrink: 0; position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-inline: 1.25rem; background: #fff; border-bottom: 1px solid var(--lb-line); }
 .adm__topbar-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
 .adm__burger { width: 2.25rem; height: 2.25rem; border-radius: 10px; border: 1px solid var(--lb-line); background: #fff; cursor: pointer; display: grid; place-items: center; }
 .adm__burger svg { width: 1.1rem; height: 1.1rem; }
@@ -742,7 +742,7 @@ onMounted(() => loadAll())
 
 /* MODAL */
 .adm__overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1rem; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
-.adm__modal { width: 100%; max-width: 26rem; padding: 1.5rem; }
+.adm__modal { width: 100%; max-width: 26rem; padding: 1.5rem; max-height: 90vh; overflow-y: auto; }
 .adm__modal--scroll { max-height: 90vh; overflow-y: auto; }
 .adm__modal h3 { margin: 0 0 1.25rem; font-size: 1.1rem; font-weight: 800; }
 .adm__form { display: grid; gap: 0.85rem; }

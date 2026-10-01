@@ -155,7 +155,7 @@ onMounted(loadData)
             <button
               type="button"
               @click="tambahKeKeranjang(menu)"
-              class="w-10 h-10 rounded-full bg-terracotta-600 text-white flex items-center justify-center hover:bg-terracotta-700 transition shrink-0"
+              class="w-11 h-11 rounded-full bg-terracotta-600 text-white flex items-center justify-center hover:bg-terracotta-700 transition shrink-0"
               :aria-label="`Tambah ${menu.nama_menu} ke keranjang`"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -175,7 +175,7 @@ onMounted(loadData)
     <router-link
       v-if="cart.totalItems > 0"
       :to="{ name: 'Keranjang' }"
-      class="fixed left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-full sm:max-w-md bottom-4 z-30 flex items-center justify-between bg-terracotta-600 text-white rounded-full px-5 py-3 shadow-xl"
+      class="fixed left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-full sm:max-w-md bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex items-center justify-between bg-terracotta-600 text-white rounded-full px-5 py-3 shadow-xl"
     >
       <span class="text-sm font-semibold">{{ cart.totalItems }} item</span>
       <span class="text-sm font-bold">Lihat Keranjang · Rp {{ formatHarga(cart.totalHarga) }}</span>

@@ -438,5 +438,5 @@ onUnmounted(() => {
 .dapur__foot { padding: 0 1.15rem 1.15rem; margin-top: auto; display: grid; gap: 0.6rem; }
 .dapur__kelola { display: grid; gap: 0.35rem; font-size: 0.78rem; font-weight: 700; color: var(--lb-muted); }
 .dapur__select { width: 100%; }
-.dapur__cta { width: 100%; }
+.dapur__cta { width: 100%; min-height: 48px; }
 </style>

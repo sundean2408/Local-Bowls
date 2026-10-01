@@ -233,6 +233,7 @@ onUnmounted(() => {
 
 /* Info card */
 .stat-info { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; background: var(--lb-soft); border-radius: 18px; padding: 1.25rem; }
+@media (max-width: 430px) { .stat-info { grid-template-columns: 1fr; } }
 .stat-info__item { display: flex; align-items: center; gap: 0.75rem; }
 .stat-info__icon { width: 3rem; height: 3rem; border-radius: 50%; background: rgba(217,119,87,0.15); display: grid; place-items: center; flex-shrink: 0; }
 .stat-info__icon svg { width: 1.25rem; height: 1.25rem; color: var(--lb-brand); }

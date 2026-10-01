@@ -330,7 +330,7 @@ onMounted(() => {
 }
 
 /* Grid meja rata */
-.konfirm__meja-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.55rem; }
+.konfirm__meja-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; }
 @media (min-width: 640px) { .konfirm__meja-grid { grid-template-columns: repeat(6, 1fr); } }
 .konfirm__meja-sk { height: 4.2rem; }
 .konfirm__meja {

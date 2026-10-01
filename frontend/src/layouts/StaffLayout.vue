@@ -212,6 +212,9 @@ async function handleLogout() {
 .staff__topbar {
   height: 4rem;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;

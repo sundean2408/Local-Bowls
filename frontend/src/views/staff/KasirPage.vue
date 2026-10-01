@@ -345,7 +345,8 @@ onUnmounted(() => { if (pollId) clearInterval(pollId) })
 .pos__ok { margin-bottom: 1rem; }
 .pos__work { display: grid; gap: 1rem; align-items: start; }
 @media (min-width: 960px) { .pos__work { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); } }
-.pos__queue { padding: 1rem; display: grid; gap: 0.5rem; align-content: start; max-height: 72vh; overflow-y: auto; }
+.pos__queue { padding: 1rem; display: grid; gap: 0.5rem; align-content: start; max-height: 40vh; overflow-y: auto; }
+@media (min-width: 960px) { .pos__queue { max-height: 72vh; } }
 .pos__queue-head { display: grid; gap: 0.6rem; }
 .pos__queue-head h2 { margin: 0; font-size: 0.85rem; font-weight: 800; }
 .pos__queue-head h2 span { color: var(--lb-faint); font-weight: 600; }
