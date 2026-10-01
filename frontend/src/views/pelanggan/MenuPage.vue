@@ -75,7 +75,7 @@ onMounted(loadData)
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-28">
     <!-- Judul & info meja -->
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <h1 class="text-2xl font-extrabold text-terracotta-900">Menu</h1>
@@ -125,7 +125,7 @@ onMounted(loadData)
     </p>
 
     <!-- Daftar menu -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       <div
         v-for="menu in menuTampil"
         :key="menu.id"
