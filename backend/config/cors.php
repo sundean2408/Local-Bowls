@@ -19,9 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // Dev/testing: izinkan semua origin (IP LAN yang sering berubah, dsb).
-    // Kalau nanti sudah rilis ke production, ganti ke daftar origin spesifik.
-    'allowed_origins' => ['*'],
+    // Daftar origin frontend diambil dari CORS_ALLOWED_ORIGINS (pisahkan koma).
+    // Dev: APP_URL + localhost. Production: isi cuma domain frontend resmi.
+    'allowed_origins' => array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', env('APP_URL', 'http://localhost:5173') . ',http://localhost:5173,http://localhost:8000')))),
 
     'allowed_origins_patterns' => [],
 

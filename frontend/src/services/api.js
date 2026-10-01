@@ -17,9 +17,10 @@ class ApiService {
     }
   }
 
-  // Helper method untuk image URL. Foto menu ternyata disimpan langsung di
-  // backend/public/images/menu/... (BUKAN di storage/app/public), jadi Laravel
-  // serve otomatis tanpa perlu prefix "/storage/" -- cukup base URL + path-nya.
+  // Helper method untuk image URL. Foto menu tersimpan di
+  // backend/public/images/menu/... jadi langsung bisa di-serve web server
+  // (ikuti deploy: folder images/ ikut ter-upload ke public_html).
+  // URL dibentuk dari base backend + path gambar, fallback lokal bila kosong.
   getImageUrl(imagePath, fallback = '/placeholder.png') {
     if (!imagePath) return fallback
     if (imagePath.startsWith('http')) return imagePath
