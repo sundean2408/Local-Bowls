@@ -11,15 +11,7 @@ const heroSlides = [
   { img: '/Mie-Tiaw.jpg', nama: 'Mie Tiaw', asal: 'Pontianak' },
 ]
 
-const getFallbackImg = (index) => {
-  const fallbacks = [
-    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?q=80&w=1000&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1552611052-33e04de081de?q=80&w=1000&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1617093727343-374698b1b08d?q=80&w=1000&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1555126634-323283e090fa?q=80&w=1000&auto=format&fit=crop',
-  ]
-  return fallbacks[index % fallbacks.length]
-}
+const getFallbackImg = () => '/logo.png'
 
 const activeIndex = ref(0)
 let intervalId = null
@@ -30,7 +22,11 @@ function nextSlide() { activeIndex.value = (activeIndex.value + 1) % heroSlides.
 
 // --- Menu Favorit (Top Mie Terlaris) ---
 const menuFavorit = ref([])
+const menuLoading = ref(true)
+const menuError = ref('')
 async function fetchMenuFavorit() {
+  menuLoading.value = true
+  menuError.value = ''
   try {
     const res = await api.get('/menu')
     // api.get() (fetch-based) mengembalikan body JSON asli dari Laravel,
@@ -43,6 +39,9 @@ async function fetchMenuFavorit() {
     }
   } catch (e) {
     console.error('Gagal ambil menu:', e)
+    menuError.value = 'Menu belum bisa dimuat. Periksa koneksi lalu coba lagi.'
+  } finally {
+    menuLoading.value = false
   }
 }
 
@@ -98,7 +97,7 @@ onUnmounted(() => {
             :src="slide.img"
             :alt="slide.nama"
             class="hero__media-img"
-            @error="$event.target.src = getFallbackImg(i)"
+            @error="$event.target.src = getFallbackImg()"
           />
         </transition-group>
         <div class="hero__scrim" aria-hidden="true"></div>
@@ -156,25 +155,31 @@ onUnmounted(() => {
         <router-link to="/menu" class="top-menu__link">Lihat semua menu →</router-link>
       </div>
 
-      <div class="top-menu__grid">
+      <div v-if="menuLoading" class="top-menu__grid">
+        <div v-for="i in 4" :key="i" class="lb-skeleton" style="height: 16rem;"></div>
+      </div>
+      <div v-else-if="menuError" class="top-menu__error">
+        <p>{{ menuError }}</p>
+        <button type="button" @click="fetchMenuFavorit" class="top-menu__retry">Coba lagi</button>
+      </div>
+
+      <div v-else class="top-menu__grid">
         <article v-for="(item, index) in menuFavorit" :key="item.id" class="mie-card" :class="`mie-card--${(index % 4) + 1}`">
           <div class="mie-card__badge">#{{ index + 1 }}</div>
           <div class="mie-card__foto-wrap">
             <img
-              v-if="item.gambar"
               class="mie-card__foto"
-              :src="getImageUrl(item.gambar, getFallbackImg(index))"
+              :src="item.gambar ? getImageUrl(item.gambar, getFallbackImg()) : getFallbackImg()"
               :alt="item.nama_menu"
-              @error="$event.target.src = getFallbackImg(index)"
+              @error="$event.target.src = getFallbackImg()"
             />
-            <div v-else class="mie-card__foto mie-card__foto--kosong">Foto Menu</div>
           </div>
           <p class="mie-card__kategori">{{ item.kategori?.nama_kategori || 'Menu' }}</p>
           <h3 class="mie-card__nama">{{ item.nama_menu }}</h3>
           <p class="mie-card__harga">Rp {{ new Intl.NumberFormat('id-ID').format(item.harga) }}</p>
         </article>
 
-        <p v-if="menuFavorit.length === 0" class="top-menu__kosong">Menu sedang dimuat...</p>
+        <p v-if="menuFavorit.length === 0" class="top-menu__kosong">Belum ada menu tersedia. <router-link to="/menu" class="top-menu__link">Lihat semua menu →</router-link></p>
       </div>
     </section>
 
@@ -186,9 +191,9 @@ onUnmounted(() => {
         <div class="sorotan__foto-wrap">
           <img
             class="sorotan__foto"
-            :src="getImageUrl(menuFavorit[0].gambar, getFallbackImg(0))"
+            :src="getImageUrl(menuFavorit[0].gambar, getFallbackImg())"
             :alt="menuFavorit[0].nama_menu"
-            @error="$event.target.src = getFallbackImg(0)"
+            @error="$event.target.src = getFallbackImg()"
           />
         </div>
         <div class="sorotan__teks">
@@ -202,9 +207,9 @@ onUnmounted(() => {
         <div class="sorotan__foto-wrap">
           <img
             class="sorotan__foto"
-            :src="getImageUrl(menuFavorit[2].gambar, getFallbackImg(2))"
+            :src="getImageUrl(menuFavorit[2].gambar, getFallbackImg())"
             :alt="menuFavorit[2].nama_menu"
-            @error="$event.target.src = getFallbackImg(2)"
+            @error="$event.target.src = getFallbackImg()"
           />
         </div>
         <div class="sorotan__teks">
@@ -242,13 +247,12 @@ onUnmounted(() => {
     <!-- ===== TENTANG KAMI ===== -->
     <div id="tentang" ref="tentangRef" class="tentang">
       <div class="tentang__inner">
-        <p v-if="tentangVisible" class="tentang__eyebrow reveal-item reveal-visible">Tentang Kami</p>
-        <h2 v-if="tentangVisible" class="tentang__title reveal-item reveal-visible">Warisan Rasa Nusantara</h2>
-        <div v-if="tentangVisible" class="tentang__paragraf">
+        <p class="tentang__eyebrow reveal-item reveal-visible">Tentang Kami</p>
+        <h2 class="tentang__title reveal-item reveal-visible">Warisan Rasa Nusantara</h2>
+        <div class="tentang__paragraf">
           <p v-for="(p, i) in paragraf" :key="i" class="reveal-item reveal-visible" :style="{ transitionDelay: (i * 150) + 'ms' }">{{ p }}</p>
         </div>
         <router-link
-          v-if="tentangVisible"
           to="/menu"
           class="btn-cta reveal-item reveal-visible"
           :style="{ transitionDelay: (paragraf.length * 150 + 100) + 'ms' }"
@@ -365,6 +369,9 @@ onUnmounted(() => {
 .top-menu__title { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 600; margin: 0; }
 .top-menu__link { color: var(--lb-accent); text-decoration: none; font-weight: 600; font-size: 0.9rem; }
 .top-menu__kosong { color: var(--lb-text-soft); font-size: 0.9rem; }
+.top-menu__error { text-align: center; padding: 2rem 1rem; color: var(--lb-text-soft); font-size: 0.9rem; display: grid; gap: 0.75rem; justify-items: center; }
+.top-menu__error p { margin: 0; }
+.top-menu__retry { border: none; background: var(--lb-accent); color: #fff; font-weight: 700; font-size: 0.85rem; padding: 0.65rem 1.4rem; border-radius: 999px; cursor: pointer; min-height: 44px; }
 
 .top-menu__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; align-items: stretch; }
 

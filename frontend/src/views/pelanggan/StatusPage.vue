@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import api from '../../services/api'
+import api, { getImageUrl } from '../../services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,6 +19,8 @@ const STAGES = [
   { key: 'selesai', label: 'Siap diambil', icon: '🍽️' },
   { key: 'selesai_makan', label: 'Selesai makan', icon: '🍴' },
 ]
+
+const details = (pesanan) => pesanan.detail_pesanan ?? pesanan.detailPesanan ?? []
 
 function stageIndex(status) {
   const i = STAGES.findIndex((s) => s.key === status)
@@ -40,43 +42,17 @@ function waktuStage(pesanan, stageKeyIndex) {
   return pesanan.updated_at
 }
 
-// Generate path dengan multiple case variations
-function getImagePaths(nama) {
-  if (!nama) return []
-  const withDash = nama.replace(/\s+/g, '-')
-  return [
-    `/${withDash}.jpg`,           // "Mie-Aceh.jpg"
-    `/${withDash.toLowerCase()}.jpg`, // "mie-aceh.jpg"
-  ]
+// Gambar diambil dari path asli backend (detail.menu.gambar) — tanpa tebak nama file.
+function imgSrc(detail) {
+  return detail?.menu?.gambar ? getImageUrl(detail.menu.gambar) : '/logo.png'
 }
 
-// Handle image error dengan multiple fallback
-function handleImgError(event, menuName) {
+// Handle image error: sekali gagal langsung ke logo lokal (selalu ada).
+function handleImgError(event) {
   const img = event.target
-  const currentStage = Number(img.dataset.stage || 0)
-  const paths = getImagePaths(menuName)
-  
-  if (currentStage === 0) {
-    // Stage 0: Coba path pertama (original case)
-    img.dataset.stage = '1'
-    img.src = paths[0]
-    return
-  }
-  
-  if (currentStage === 1) {
-    // Stage 1: Coba path kedua (lowercase)
-    img.dataset.stage = '2'
-    img.src = paths[1]
-    return
-  }
-  
-  if (currentStage === 2) {
-    // Stage 2: Fallback ke stock image
-    img.dataset.stage = '3'
-    img.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=100&h=100&fit=crop'
-  } else {
-    img.src = 'https://via.placeholder.com/80x80?text=Food'
-  }
+  if (img.dataset.fallback) return
+  img.dataset.fallback = '1'
+  img.src = '/logo.png'
 }
 
 async function fetchStatus() {
@@ -185,12 +161,13 @@ onUnmounted(() => {
           <div class="lb-card stat-items">
             <h2 class="stat-items__title">Pesanan Kamu</h2>
             <div class="stat-item-list">
-              <div v-for="detail in pesanan.detail_pesanan" :key="detail.id" class="stat-item">
+              <p v-if="details(pesanan).length === 0" class="stat-item__note">Item pesanan tidak tersedia. Coba muat ulang.</p>
+              <div v-for="detail in details(pesanan)" :key="detail.id" class="stat-item">
                 <div class="stat-item__img">
-                  <img :src="getImagePaths(detail.menu?.nama_menu)[0]" :alt="detail.menu?.nama_menu" data-stage="0" @error="handleImgError($event, detail.menu?.nama_menu)" />
+                  <img :src="imgSrc(detail)" :alt="detail.menu?.nama_menu || 'Menu'" @error="handleImgError" />
                 </div>
                 <div class="stat-item__info">
-                  <h3>{{ detail.menu?.nama_menu }}</h3>
+                  <h3>{{ detail.menu?.nama_menu || 'Menu' }}</h3>
                   <p class="stat-item__price">Rp {{ Number(detail.menu?.harga ?? (detail.subtotal / detail.jumlah)).toLocaleString('id-ID') }}</p>
                   <p v-if="detail.catatan" class="stat-item__note">📝 {{ detail.catatan }}</p>
                   <div class="stat-item__qty">

@@ -30,24 +30,16 @@ const langkah = computed(() => [
 
 const fmt = (h) => new Intl.NumberFormat('id-ID').format(h || 0)
 
-function slugFromNama(nama) {
-  return (nama || '').trim().replace(/\s+/g, '-')
+// Cart menyimpan path gambar asli dari API — pakai itu dulu (pasti benar),
+// baru fallback ke /logo.png bila gagal.
+function imgSrc(item) {
+  return item.gambar ? getImageUrl(item.gambar) : '/logo.png'
 }
-function localImgSrc(nama) {
-  return `/${slugFromNama(nama)}.jpg`
-}
-function handleImgError(event, item) {
+function handleImgError(event) {
   const img = event.target
-  const stage = Number(img.dataset.stage || 0)
-  if (stage === 0) {
-    img.dataset.stage = '1'
-    img.src = localImgSrc(item.nama_menu).toLowerCase()
-  } else if (stage === 1 && item.gambar) {
-    img.dataset.stage = '2'
-    img.src = getImageUrl(item.gambar)
-  } else {
-    img.src = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?q=80&w=500'
-  }
+  if (img.dataset.fallback) return
+  img.dataset.fallback = '1'
+  img.src = '/logo.png'
 }
 
 function isTerisi(meja) {
@@ -227,12 +219,11 @@ onMounted(() => {
           <ul class="konfirm__items">
             <li v-for="item in items" :key="item.id" class="konfirm__item">
               <img
-                :src="localImgSrc(item.nama_menu)"
+                :src="imgSrc(item)"
                 :alt="item.nama_menu"
-                data-stage="0"
                 class="konfirm__thumb"
                 loading="lazy"
-                @error="handleImgError($event, item)"
+                @error="handleImgError"
               />
               <div class="konfirm__body">
                 <div class="konfirm__top">

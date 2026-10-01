@@ -18,7 +18,8 @@ const toast = ref('')
 let toastTimer = null
 
 // ===== HELPERS =====
-const FALLBACK_IMG = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80'
+// Logo lokal selalu ada — fallback aman tanpa ketergantungan eksternal.
+const FALLBACK_IMG = '/logo.png'
 
 const getGambarUrl = (gambar) => getImageUrl(gambar, FALLBACK_IMG)
 
@@ -139,7 +140,7 @@ onMounted(loadData)
           @error="$event.target.src = FALLBACK_IMG"
         />
         <h3 class="font-bold text-earth-dark">{{ menu.nama_menu }}</h3>
-        <p class="text-sm text-earth-dark/70 line-clamp-2 flex-1">{{ menu.deskripsi }}</p>
+        <p class="text-sm text-earth-dark/70 line-clamp-2 flex-1">{{ menu.deskripsi || 'Racikan rempah pilihan, disajikan hangat dari dapur.' }}</p>
 
         <div class="flex items-center justify-between mt-3">
           <span class="font-bold text-terracotta-700">Rp {{ formatHarga(menu.harga) }}</span>

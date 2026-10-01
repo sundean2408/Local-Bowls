@@ -248,7 +248,7 @@ onUnmounted(() => {
               :alt="detail.menu?.nama_menu"
               class="dapur__thumb"
               loading="lazy"
-              @error="$event.target.src = '/placeholder.png'"
+              @error="$event.target.src = '/logo.png'"
             />
             <div class="dapur__item-text">
               <p class="dapur__item-name"><strong>{{ detail.jumlah }}×</strong> {{ detail.menu?.nama_menu }}</p>

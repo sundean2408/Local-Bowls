@@ -20,8 +20,8 @@ class ApiService {
   // Helper method untuk image URL. Foto menu tersimpan di
   // backend/public/images/menu/... jadi langsung bisa di-serve web server
   // (ikuti deploy: folder images/ ikut ter-upload ke public_html).
-  // URL dibentuk dari base backend + path gambar, fallback lokal bila kosong.
-  getImageUrl(imagePath, fallback = '/placeholder.png') {
+  // URL dibentuk dari base backend + path gambar, fallback logo lokal (selalu ada).
+  getImageUrl(imagePath, fallback = '/logo.png') {
     if (!imagePath) return fallback
     if (imagePath.startsWith('http')) return imagePath
     // Backend (Windows) menyimpan path pakai backslash, misal "images\menu\Mie-Aceh.jpg".
@@ -139,7 +139,7 @@ export default apiInstance
 
 // Named export supaya `import api, { getImageUrl } from '@/services/api'` di
 // HomePage/KonfirmasiPage/AdminPage tidak lagi error "no export named getImageUrl".
-export function getImageUrl(imagePath, fallback = '/placeholder.png') {
+export function getImageUrl(imagePath, fallback = '/logo.png') {
   return apiInstance.getImageUrl(imagePath, fallback)
 }
 

@@ -318,6 +318,8 @@ onMounted(() => loadAll())
       </header>
 
       <div class="adm__content">
+        <div v-if="loading" class="adm__loading"><div class="lb-spinner"></div><p>Memuat data admin...</p></div>
+        <template v-else>
 
         <!-- ===== DASHBOARD ===== -->
         <div v-if="activeTab === 'dashboard'">
@@ -413,6 +415,7 @@ onMounted(() => loadAll())
                   <td><span class="adm__chip" :style="{ background: roleBadge(user.role).bg, color: roleBadge(user.role).color }">{{ user.role }}</span></td>
                   <td><div class="adm__actions"><button @click="openUserModal(user)" class="adm__act-edit">Edit</button><button @click="deleteUser(user.id)" class="adm__act-del">Hapus</button></div></td>
                 </tr>
+                <tr v-if="userList.length === 0"><td colspan="5" style="text-align:center;color:var(--lb-muted);padding:2rem;">Belum ada user. Klik “+ Tambah User” untuk menambah yang pertama.</td></tr>
               </tbody>
             </table>
           </div>
@@ -422,6 +425,7 @@ onMounted(() => loadAll())
         <div v-if="activeTab === 'menu'">
           <div class="adm__section-head"><h2>Kelola Menu</h2><button @click="openMenuModal()" class="lb-btn-primary">+ Tambah Menu</button></div>
           <div class="adm__menu-grid">
+            <p v-if="menuList.length === 0" class="lb-empty" style="grid-column:1/-1;">Belum ada menu. Klik “+ Tambah Menu” untuk menambah yang pertama.</p>
             <div v-for="menu in menuList" :key="menu.id" class="lb-card adm__menu-card">
               <img :src="getGambarUrl(menu.gambar)" :alt="menu.nama_menu" class="adm__menu-img" @error="$event.target.src = '/logo.png'" />
               <div class="adm__menu-body">
@@ -453,6 +457,7 @@ onMounted(() => loadAll())
                   <td>{{ menuList.filter(m => m.id_kategori === kat.id).length }}</td>
                   <td><div class="adm__actions"><button @click="openKategoriModal(kat)" class="adm__act-edit">Edit</button><button @click="deleteKategori(kat.id)" class="adm__act-del">Hapus</button></div></td>
                 </tr>
+                <tr v-if="kategoriList.length === 0"><td colspan="4" style="text-align:center;color:var(--lb-muted);padding:2rem;">Belum ada kategori. Klik “+ Tambah Kategori” untuk menambah yang pertama.</td></tr>
               </tbody>
             </table>
           </div>
@@ -475,6 +480,7 @@ onMounted(() => loadAll())
                   </td>
                   <td><div class="adm__actions"><button @click="openMejaModal(meja)" class="adm__act-edit">Edit</button><button @click="deleteMeja(meja.id)" class="adm__act-del">Hapus</button></div></td>
                 </tr>
+                <tr v-if="mejaList.length === 0"><td colspan="4" style="text-align:center;color:var(--lb-muted);padding:2rem;">Belum ada meja. Klik “+ Tambah Meja” untuk menambah yang pertama.</td></tr>
               </tbody>
             </table>
           </div>
@@ -541,6 +547,7 @@ onMounted(() => loadAll())
             </table>
           </div>
         </div>
+        </template>
 
       </div>
     </div>
@@ -653,6 +660,8 @@ onMounted(() => loadAll())
 /* MAIN */
 .adm__main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .adm__content { flex: 1; overflow-y: auto; padding: 1.25rem; }
+.adm__loading { text-align: center; padding: 4rem 1rem; color: var(--lb-muted); display: grid; gap: 0.75rem; justify-items: center; }
+.adm__loading p { margin: 0; }
 @media (min-width: 640px) { .adm__content { padding: 1.5rem; } }
 
 /* WELCOME */

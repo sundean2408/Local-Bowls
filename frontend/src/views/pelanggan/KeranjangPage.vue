@@ -59,7 +59,7 @@ function lanjutKonfirmasi() {
     <div v-else class="keranjang__grid">
       <div class="lb-card keranjang__list">
         <article v-for="(item, idx) in items" :key="item.id" class="keranjang__item" :class="{ 'is-last': idx === items.length - 1 }">
-          <img :src="fotoItem(item)" :alt="item.nama_menu" class="keranjang__thumb" loading="lazy" @error="$event.target.src = '/placeholder.png'" />
+          <img :src="fotoItem(item)" :alt="item.nama_menu" class="keranjang__thumb" loading="lazy" @error="$event.target.src = '/logo.png'" />
           <div class="keranjang__info">
             <h3>{{ item.nama_menu }}</h3>
             <p class="keranjang__price">Rp {{ fmt(item.harga) }}</p>
