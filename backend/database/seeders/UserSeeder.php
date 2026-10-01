@@ -13,28 +13,21 @@ class UserSeeder extends Seeder
         User::create([
             'nama' => 'Admin Utama',
             'username' => 'admin',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('admin123'),
             'role' => 'admin',
-        ]);
-
-        User::create([
-            'nama' => 'Budi Waiter',
-            'username' => 'waiter',
-            'password' => Hash::make('password123'),
-            'role' => 'waiter',
         ]);
 
         User::create([
             'nama' => 'Sari Kitchen',
             'username' => 'kitchen',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('kitchen123'),
             'role' => 'kitchen',
         ]);
 
         User::create([
             'nama' => 'Andi Kasir',
             'username' => 'kasir',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('kasir123'),
             'role' => 'kasir',
         ]);
     }

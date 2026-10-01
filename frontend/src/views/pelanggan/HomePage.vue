@@ -1,10 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
 import api, { getImageUrl } from '@/services/api'
-
-const route = useRoute()
-const idMeja = route.query.meja || ''
 
 // --- Hero carousel ---
 // Nama file HARUS PERSIS sama dengan yang ada di folder frontend/public/
@@ -117,8 +113,8 @@ onUnmounted(() => {
         </p>
 
         <div class="hero__actions">
-          <router-link :to="{ path: '/menu', query: { meja: idMeja } }" class="btn-cta">Gas Pesan!</router-link>
-          <router-link :to="{ path: '/menu', query: { meja: idMeja } }" class="btn-outline">Lihat Menu</router-link>
+          <router-link to="/menu" class="btn-cta">Gas Pesan!</router-link>
+          <router-link to="/menu" class="btn-outline">Lihat Menu</router-link>
         </div>
 
         <ul class="hero__fitur">
@@ -157,7 +153,7 @@ onUnmounted(() => {
           <p class="top-menu__eyebrow">Pilihan Terbaik</p>
           <h2 class="top-menu__title">Menu Mie Terlaris</h2>
         </div>
-        <router-link :to="{ path: '/menu', query: { meja: idMeja } }" class="top-menu__link">Lihat semua menu →</router-link>
+        <router-link to="/menu" class="top-menu__link">Lihat semua menu →</router-link>
       </div>
 
       <div class="top-menu__grid">
@@ -198,7 +194,7 @@ onUnmounted(() => {
         <div class="sorotan__teks">
           <h3>{{ menuFavorit[0].nama_menu }}</h3>
           <p>{{ menuFavorit[0].deskripsi || 'Diracik dari bumbu rempah pilihan, disajikan hangat langsung dari dapur ke mejamu.' }}</p>
-          <router-link :to="{ path: '/menu', query: { meja: idMeja } }" class="sorotan__link">Pesan menu ini →</router-link>
+          <router-link to="/menu" class="sorotan__link">Pesan menu ini →</router-link>
         </div>
       </div>
 
@@ -214,7 +210,7 @@ onUnmounted(() => {
         <div class="sorotan__teks">
           <h3>{{ menuFavorit[2].nama_menu }}</h3>
           <p>{{ menuFavorit[2].deskripsi || 'Favorit pelanggan yang selalu habis lebih dulu, cocok dinikmati bersama keluarga.' }}</p>
-          <router-link :to="{ path: '/menu', query: { meja: idMeja } }" class="sorotan__link">Pesan menu ini →</router-link>
+          <router-link to="/menu" class="sorotan__link">Pesan menu ini →</router-link>
         </div>
       </div>
     </section>
@@ -253,7 +249,7 @@ onUnmounted(() => {
         </div>
         <router-link
           v-if="tentangVisible"
-          :to="{ path: '/menu', query: { meja: idMeja } }"
+          to="/menu"
           class="btn-cta reveal-item reveal-visible"
           :style="{ transitionDelay: (paragraf.length * 150 + 100) + 'ms' }"
         >
@@ -268,11 +264,10 @@ onUnmounted(() => {
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 .lb-page {
-  --lb-bg: #FDF6EC;
-  --lb-accent: #D97757;
+  --lb-accent: var(--lb-brand);
   --lb-accent-soft: #E8935A;
-  --lb-text: #3D2817;
-  --lb-text-soft: #6B4A34;
+  --lb-text: var(--lb-ink);
+  --lb-text-soft: var(--lb-muted);
   background: var(--lb-bg);
   color: var(--lb-text);
   font-family: 'Plus Jakarta Sans', sans-serif;

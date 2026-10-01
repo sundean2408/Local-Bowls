@@ -18,6 +18,6 @@ import StaffLayout from './layouts/StaffLayout.vue'
 
 const route = useRoute()
 
-const STAFF_ROUTE_NAMES = ['Waiter', 'Dapur', 'Kasir']
+const STAFF_ROUTE_NAMES = ['Dapur', 'Kasir']
 const isStaffRoute = computed(() => STAFF_ROUTE_NAMES.includes(route.name))
 </script>

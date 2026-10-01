@@ -1,107 +1,67 @@
-import { defineStore, storeToRefs } from 'pinia'
-import { ref, computed } from 'vue'
+import { defineStore } from 'pinia'
 
-export const useCartStore = defineStore('cart', () => {
-  const items = ref([])
-  const customerInfo = ref({
-    name: '',
-    phone: '',
-    table: '',
-    notes: ''
-  })
-
-  // Total harga (pakai `harga` & `qty`, konsisten dengan MenuPage.vue dkk)
-  const total = computed(() => {
-    return items.value.reduce((sum, item) => sum + (item.harga * item.qty), 0)
-  })
-
-  // Total jumlah item
-  const itemCount = computed(() => {
-    return items.value.reduce((sum, item) => sum + item.qty, 0)
-  })
-
-  // Add item to cart
-  const addItem = (item) => {
-    const existingItem = items.value.find(i => i.id === item.id)
-
-    if (existingItem) {
-      existingItem.qty += item.qty || 1
-      // Kalau ada catatan baru dikirim, timpa catatan lama
-      if (item.catatan !== undefined) existingItem.catatan = item.catatan
-    } else {
-      items.value.push({
-        ...item,
-        qty: item.qty || 1,
-        cartItemId: Date.now() // Unique ID untuk cart item
-      })
-    }
-  }
-
-  // Remove item from cart
-  const removeItem = (cartItemId) => {
-    items.value = items.value.filter(i => i.cartItemId !== cartItemId)
-  }
-
-  // Update item quantity
-  const updateQuantity = (cartItemId, qty) => {
-    const item = items.value.find(i => i.cartItemId === cartItemId)
-    if (item) {
-      if (qty <= 0) {
-        removeItem(cartItemId)
-      } else {
-        item.qty = qty
-      }
-    }
-  }
-
-  // Clear cart
-  const clearCart = () => {
-    items.value = []
-  }
-
-  // Set customer info
-  const setCustomerInfo = (info) => {
-    customerInfo.value = { ...customerInfo.value, ...info }
-  }
-
-  // Place order
-  const placeOrder = async () => {
-    // TODO: Call API to place order
-    return {
-      orderId: Math.floor(Math.random() * 100000),
-      items: items.value,
-      total: total.value,
-      customerInfo: customerInfo.value,
-      timestamp: new Date()
-    }
-  }
-
-  return {
-    items,
-    customerInfo,
-    total,
-    itemCount,
-    addItem,
-    removeItem,
-    updateQuantity,
-    clearCart,
-    setCustomerInfo,
-    placeOrder
-  }
-})
-
-// MenuPage.vue (dan mungkin halaman lain) memakai nama & bentuk berbeda:
-// `useCart()` yang mengembalikan { totalItems, totalHarga, ... } alih-alih
-// `useCartStore()` yang mengembalikan { itemCount, total, ... }. Composable
-// ini menjembatani supaya keduanya mengarah ke store yang sama persis
-// (bukan store terpisah), reaktivitasnya tetap terjaga lewat storeToRefs.
-export function useCart() {
-  const store = useCartStore()
-  const { itemCount, total } = storeToRefs(store)
-  return {
-    ...store,
-    totalItems: itemCount,
-    totalQty: itemCount,
-    totalHarga: total,
+function baca(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
   }
 }
+
+export const useCartStore = defineStore('cart', {
+  state: () => ({
+    items: baca('cartItems', []),
+  }),
+
+  getters: {
+    totalItems: (state) => state.items.reduce((n, i) => n + (i.qty || 0), 0),
+    totalHarga: (state) => state.items.reduce((n, i) => n + (Number(i.harga) || 0) * (i.qty || 0), 0),
+  },
+
+  actions: {
+    simpan() {
+      localStorage.setItem('cartItems', JSON.stringify(this.items))
+    },
+
+    // Tambah 1 porsi menu ke keranjang
+    addItem(menu) {
+      const ada = this.items.find((i) => i.id === menu.id)
+      if (ada) {
+        ada.qty += 1
+      } else {
+        this.items.push({
+          id: menu.id,
+          nama_menu: menu.nama_menu,
+          harga: Number(menu.harga) || 0,
+          gambar: menu.gambar,
+          qty: 1,
+        })
+      }
+      this.simpan()
+    },
+
+    // Ubah jumlah; kalau jadi 0 atau kurang, item dihapus
+    updateQty(id, qty) {
+      const item = this.items.find((i) => i.id === id)
+      if (!item) return
+      if (qty <= 0) {
+        this.removeItem(id)
+        return
+      }
+      item.qty = qty
+      this.simpan()
+    },
+
+    removeItem(id) {
+      this.items = this.items.filter((i) => i.id !== id)
+      this.simpan()
+    },
+
+    // Kosongkan keranjang (panggil setelah pesanan berhasil dibuat)
+    clear() {
+      this.items = []
+      this.simpan()
+    },
+  },
+})

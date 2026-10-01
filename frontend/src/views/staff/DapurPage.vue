@@ -3,6 +3,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth.js'
 import api, { getImageUrl } from '../../services/api'
+import PageHeader from '../../components/PageHeader.vue'
+import StatusBadge from '../../components/StatusBadge.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -10,81 +12,136 @@ const authStore = useAuthStore()
 const orders = ref([])
 const loading = ref(true)
 const error = ref(null)
-const activeTab = ref('baru')
+const activeTab = ref('semua')
+const busy = ref({})
+const gagal = ref({})
+const toast = ref('')
+const selesaiHariIni = ref(0)
 let intervalId = null
+let toastTimer = null
 
-// Peta status -> label, warna, dan aksi tombol berikutnya.
 const STATUS_META = {
-  baru: { label: 'Baru', color: '#c02a2a', bg: '#FBEAEA', next: 'diproses', nextLabel: 'Mulai Masak', nextIcon: '🍳' },
-  diproses: { label: 'Diproses', color: '#D97757', bg: '#FBEAD9', next: 'selesai', nextLabel: 'Selesai Masak', nextIcon: '✓' },
-  selesai: { label: 'Siap Diambil', color: '#4CAF50', bg: '#E9F6EA', next: null },
+  baru: { next: 'diproses', nextLabel: 'Mulai Masak' },
+  diproses: { next: 'selesai', nextLabel: 'Selesai Masak' },
 }
 
 const TABS = [
-  { id: 'baru', label: 'Baru', icon: '🆕' },
-  { id: 'diproses', label: 'Diproses', icon: '🍳' },
-  { id: 'selesai', label: 'Siap Diambil', icon: '✅' },
+  { id: 'semua', label: 'Semua Aktif' },
+  { id: 'baru', label: 'Baru' },
+  { id: 'diproses', label: 'Diproses' },
 ]
 
+const PILIHAN_STATUS = [
+  { id: 'baru', label: 'Baru' },
+  { id: 'diproses', label: 'Diproses' },
+  { id: 'selesai', label: 'Selesai → Kasir' },
+]
+
+function isAktif(o) {
+  return o.status_pesanan === 'baru' || o.status_pesanan === 'diproses'
+}
+
+function ordersAktif() {
+  return orders.value.filter(isAktif)
+}
+
 function ordersByStatus(status) {
-  return orders.value.filter((o) => o.status_pesanan === status)
+  return ordersAktif().filter((o) => o.status_pesanan === status)
 }
 
 const baruCount = computed(() => ordersByStatus('baru').length)
 const diprosesCount = computed(() => ordersByStatus('diproses').length)
-const selesaiCount = computed(() => ordersByStatus('selesai').length)
+const totalAktif = computed(() => ordersAktif().length)
 
-const activeOrders = computed(() =>
-  [...ordersByStatus(activeTab.value)].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-)
+const activeOrders = computed(() => {
+  const list = activeTab.value === 'semua' ? ordersAktif() : ordersByStatus(activeTab.value)
+  return [...list].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+})
+
+function countTab(id) {
+  if (id === 'baru') return baruCount.value
+  if (id === 'diproses') return diprosesCount.value
+  return totalAktif.value
+}
 
 function nomorMeja(pesanan) {
   return pesanan.meja?.nomor_meja ?? pesanan.nomor_meja ?? pesanan.id_meja ?? '-'
 }
 
+function detailList(pesanan) {
+  return pesanan.detail_pesanan ?? pesanan.detailPesanan ?? []
+}
+
 function waktuLalu(dateStr) {
   if (!dateStr) return '-'
-  const d = new Date(dateStr)
+  const d = dateStr instanceof Date ? dateStr : new Date(dateStr)
   if (isNaN(d.getTime())) return '-'
   const menit = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000))
   if (menit < 1) return 'Baru saja'
-  if (menit < 60) return `${menit} menit lalu`
+  if (menit < 60) return `${menit} mnt lalu`
   const jam = Math.floor(menit / 60)
   return `${jam} jam lalu`
 }
 
 const lastUpdated = ref(null)
 
+function showToast(pesan) {
+  toast.value = pesan
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = ''), 2500)
+}
+
 async function fetchOrders() {
   try {
     const res = await api.getStaffOrders('kitchen')
-    // api.get() (fetch-based) mengembalikan body JSON asli dari Laravel,
-    // bisa berupa array langsung ATAU objek { data: [...] } tergantung
-    // bagaimana controller Laravel membungkus response-nya.
     const semua = Array.isArray(res) ? res : (res.data ?? res)
-    orders.value = Array.isArray(semua) ? semua : []
+    const list = Array.isArray(semua) ? semua : []
+    // Siap-ambil tidak tampil di dapur: hanya baru + diproses yang disimpan.
+    // ponytail: arsip selesai hari ini butuh endpoint khusus; pakai counter sesi dulu.
+    const aktif = list.filter((o) => o.status_pesanan === 'baru' || o.status_pesanan === 'diproses')
+    selesaiHariIni.value = list.filter((o) => o.status_pesanan === 'selesai').length
+    orders.value = aktif
     error.value = null
     lastUpdated.value = new Date()
   } catch (e) {
-    error.value = 'Gagal memuat pesanan dapur. Pastikan backend Laravel sedang berjalan.'
+    error.value = 'Gagal memuat pesanan dapur. Pastikan backend Laravel berjalan dan kamu masih login.'
     console.error('Gagal fetch pesanan dapur:', e)
   } finally {
     loading.value = false
   }
 }
 
-async function majukanStatus(pesanan) {
-  const meta = STATUS_META[pesanan.status_pesanan]
-  if (!meta?.next) return
+function muatUlang() {
+  loading.value = orders.value.length === 0
+  fetchOrders()
+}
+
+// Kelola status: bisa maju, mundur, atau langsung selesai. Selesai = hilang dari dapur.
+async function ubahStatus(pesanan, statusBaru) {
+  if (!statusBaru || statusBaru === pesanan.status_pesanan || busy.value[pesanan.id]) return
   const statusLama = pesanan.status_pesanan
-  pesanan.status_pesanan = meta.next // optimistic update
+  busy.value[pesanan.id] = true
+  delete gagal.value[pesanan.id]
+  pesanan.status_pesanan = statusBaru
   try {
-    await api.updateOrderStatus(pesanan.id, meta.next)
+    await api.updateOrderStatus(pesanan.id, statusBaru)
+    if (statusBaru === 'selesai') {
+      orders.value = orders.value.filter((o) => o.id !== pesanan.id)
+      selesaiHariIni.value += 1
+      showToast(`Pesanan #${String(pesanan.id).padStart(3, '0')} selesai — diteruskan ke kasir`)
+    }
   } catch (e) {
-    pesanan.status_pesanan = statusLama // rollback kalau gagal
-    alert('Gagal memperbarui status pesanan. Coba lagi.')
+    pesanan.status_pesanan = statusLama
+    gagal.value[pesanan.id] = 'Gagal memperbarui status. Coba lagi.'
     console.error(e)
+  } finally {
+    delete busy.value[pesanan.id]
   }
+}
+
+function majukanStatus(pesanan) {
+  const meta = STATUS_META[pesanan.status_pesanan]
+  if (meta?.next) ubahStatus(pesanan, meta.next)
 }
 
 onMounted(() => {
@@ -102,127 +159,284 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-    <!-- Judul konten + status auto-refresh -->
-    <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
-      <div>
-        <h2 class="text-xl font-bold text-terracotta-900">Pesanan Dapur</h2>
-        <p class="text-sm text-earth-dark/60">
-          Diperbarui otomatis tiap 5 detik
-          <span v-if="lastUpdated"> · terakhir {{ waktuLalu(lastUpdated) }}</span>
-        </p>
+  <div class="lb-wrap dapur">
+    <PageHeader
+      eyebrow="Kitchen Display"
+      title="Kelola Pesanan"
+      :subtitle="`Auto-refresh tiap 5 detik${lastUpdated ? ' · terakhir ' + waktuLalu(lastUpdated) : ''}${totalAktif ? ' · ' + totalAktif + ' perlu tindakan' : ''}`"
+    >
+      <template #action>
+        <button type="button" class="lb-btn-ghost dapur__refresh" @click="muatUlang">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 10-2.3 5.6M20 5v6h-6"/></svg>
+          Muat Ulang
+        </button>
+      </template>
+    </PageHeader>
+
+    <div v-if="toast" class="lb-alert lb-alert--ok dapur__toast" role="status">{{ toast }}</div>
+
+    <!-- Ringkasan -->
+    <div v-if="loading" class="dapur__stats">
+      <div v-for="i in 3" :key="i" class="lb-card dapur__stat">
+        <div class="lb-skeleton dapur__sk-line"></div>
+        <div class="lb-skeleton dapur__sk-num"></div>
+      </div>
+    </div>
+    <div v-else class="dapur__stats">
+      <div class="lb-card dapur__stat is-baru">
+        <p class="dapur__stat-label">Pesanan Baru</p>
+        <p class="dapur__stat-num">{{ baruCount }}</p>
+      </div>
+      <div class="lb-card dapur__stat is-proses">
+        <p class="dapur__stat-label">Diproses</p>
+        <p class="dapur__stat-num">{{ diprosesCount }}</p>
+      </div>
+      <div class="lb-card dapur__stat is-siap">
+        <p class="dapur__stat-label">Selesai → Kasir</p>
+        <p class="dapur__stat-num">{{ selesaiHariIni }}</p>
       </div>
     </div>
 
-    <!-- Stat cards -->
-    <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
-      <div class="rounded-2xl p-4 sm:p-5 bg-white border border-terracotta-100 flex items-center gap-3">
-        <span class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style="background-color:#FBEAEA;">🆕</span>
-        <div class="min-w-0">
-          <p class="text-xs text-earth-dark/60 mb-0.5 truncate">Pesanan Baru</p>
-          <p class="text-xl sm:text-2xl font-bold" style="color:#c02a2a;">{{ baruCount }}</p>
-        </div>
-      </div>
-      <div class="rounded-2xl p-4 sm:p-5 bg-white border border-terracotta-100 flex items-center gap-3">
-        <span class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style="background-color:#FBEAD9;">🍳</span>
-        <div class="min-w-0">
-          <p class="text-xs text-earth-dark/60 mb-0.5 truncate">Diproses</p>
-          <p class="text-xl sm:text-2xl font-bold text-terracotta-700">{{ diprosesCount }}</p>
-        </div>
-      </div>
-      <div class="rounded-2xl p-4 sm:p-5 bg-white border border-terracotta-100 flex items-center gap-3">
-        <span class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style="background-color:#E9F6EA;">✅</span>
-        <div class="min-w-0">
-          <p class="text-xs text-earth-dark/60 mb-0.5 truncate">Siap Diambil</p>
-          <p class="text-xl sm:text-2xl font-bold" style="color:#4CAF50;">{{ selesaiCount }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="flex gap-2 mb-6 overflow-x-auto pb-1">
+    <!-- Tab status -->
+    <div class="dapur__tabs" role="tablist">
       <button
         v-for="tab in TABS"
         :key="tab.id"
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === tab.id"
         @click="activeTab = tab.id"
-        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition"
-        :class="activeTab === tab.id ? 'text-white shadow-sm' : 'bg-white text-earth-dark border border-terracotta-100'"
-        :style="activeTab === tab.id ? { backgroundColor: STATUS_META[tab.id].color } : {}"
+        class="dapur__tab"
+        :class="{ 'is-active': activeTab === tab.id }"
       >
-        <span>{{ tab.icon }}</span>
-        {{ tab.label }} ({{ tab.id === 'baru' ? baruCount : tab.id === 'diproses' ? diprosesCount : selesaiCount }})
+        {{ tab.label }}
+        <span class="dapur__tab-count">{{ countTab(tab.id) }}</span>
       </button>
     </div>
 
-    <!-- States -->
-    <div v-if="loading" class="text-center py-16 text-earth-dark/60">
-      <div class="inline-block w-6 h-6 border-2 border-terracotta-300 border-t-terracotta-600 rounded-full animate-spin mb-3"></div>
-      <p>Memuat pesanan...</p>
-    </div>
-    <div v-else-if="error" class="text-center py-16 rounded-2xl border-2 border-dashed border-red-200 bg-red-50">
-      <p class="text-red-600 mb-3">{{ error }}</p>
-      <button @click="loading = true; fetchOrders()" class="text-sm font-bold px-5 py-2.5 rounded-full text-white bg-terracotta-600 hover:bg-terracotta-700 transition">Coba Lagi</button>
-    </div>
-    <div v-else-if="activeOrders.length === 0" class="text-center py-16 rounded-2xl border-2 border-dashed border-terracotta-100 text-earth-dark/60">
-      <div class="text-3xl mb-2">🍽️</div>
-      Tidak ada pesanan {{ TABS.find(t => t.id === activeTab)?.label.toLowerCase() }} saat ini.
+    <!-- Status -->
+    <div v-if="loading" class="lb-card dapur__loading">
+      <div class="lb-spinner"></div>
+      <p>Memuat pesanan dapur...</p>
     </div>
 
-    <!-- Order list -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div
-        v-for="pesanan in activeOrders"
-        :key="pesanan.id"
-        class="rounded-2xl bg-white border overflow-hidden flex flex-col"
-        :style="{ borderColor: STATUS_META[pesanan.status_pesanan].color + '55' }"
-      >
-        <div class="flex items-center justify-between px-5 py-3" :style="{ backgroundColor: STATUS_META[pesanan.status_pesanan].bg }">
+    <div v-else-if="error" class="lb-alert lb-alert--error dapur__alert">
+      <p>{{ error }}</p>
+      <button type="button" class="lb-btn-primary dapur__retry" @click="muatUlang">Coba Lagi</button>
+    </div>
+
+    <div v-else-if="activeOrders.length === 0" class="lb-empty">
+      <p class="dapur__empty-title">Tidak ada pesanan {{ activeTab === 'semua' ? 'aktif' : TABS.find(t => t.id === activeTab)?.label.toLowerCase() }}</p>
+      <p class="dapur__empty-sub">Pesanan baru akan muncul di sini otomatis. Yang sudah Selesai langsung hilang dan diteruskan ke kasir.</p>
+    </div>
+
+    <!-- Daftar kartu pesanan -->
+    <div v-else class="dapur__grid">
+      <article v-for="pesanan in activeOrders" :key="pesanan.id" class="lb-card dapur__card">
+        <header class="dapur__card-head">
           <div>
-            <p class="text-xs font-bold tracking-wide" :style="{ color: STATUS_META[pesanan.status_pesanan].color }">
-              PESANAN #{{ String(pesanan.id).padStart(3, '0') }}
-            </p>
-            <p class="text-sm text-earth-dark/70">Meja {{ nomorMeja(pesanan) }} · {{ waktuLalu(pesanan.created_at) }}</p>
+            <p class="dapur__order-no">Pesanan #{{ String(pesanan.id).padStart(3, '0') }} · {{ pesanan.nama_pelanggan || 'Tamu' }}</p>
+            <p class="dapur__order-meta">Meja {{ nomorMeja(pesanan) }} · {{ waktuLalu(pesanan.created_at) }}</p>
           </div>
-          <span
-            class="text-xs font-bold px-3 py-1 rounded-full text-white shrink-0"
-            :style="{ backgroundColor: STATUS_META[pesanan.status_pesanan].color }"
-          >{{ STATUS_META[pesanan.status_pesanan].label }}</span>
-        </div>
+          <StatusBadge :status="pesanan.status_pesanan" />
+        </header>
 
-        <div class="px-5 py-4 flex-1">
-          <div
-            v-for="detail in pesanan.detail_pesanan"
-            :key="detail.id"
-            class="flex items-start gap-3 py-2 border-b border-cream-100 last:border-0"
-          >
+        <ul class="dapur__items">
+          <li v-for="detail in detailList(pesanan)" :key="detail.id" class="dapur__item">
             <img
               :src="getImageUrl(detail.menu?.gambar)"
               :alt="detail.menu?.nama_menu"
-              class="w-14 h-14 rounded-lg object-cover shrink-0 bg-cream-100"
+              class="dapur__thumb"
+              loading="lazy"
               @error="$event.target.src = '/placeholder.png'"
             />
-            <div class="min-w-0">
-              <p class="font-bold text-earth-dark">{{ detail.jumlah }}× {{ detail.menu?.nama_menu }}</p>
-              <p v-if="detail.catatan" class="text-xs text-earth-dark/60 mt-0.5">📝 {{ detail.catatan }}</p>
+            <div class="dapur__item-text">
+              <p class="dapur__item-name"><strong>{{ detail.jumlah }}×</strong> {{ detail.menu?.nama_menu }}</p>
+              <p v-if="detail.catatan" class="dapur__item-note">Catatan: {{ detail.catatan }}</p>
             </div>
-          </div>
-        </div>
+          </li>
+        </ul>
 
-        <div v-if="STATUS_META[pesanan.status_pesanan].next" class="px-5 pb-5">
+        <p v-if="gagal[pesanan.id]" class="lb-alert lb-alert--error dapur__inline-err">{{ gagal[pesanan.id] }}</p>
+
+        <footer class="dapur__foot">
+          <label class="dapur__kelola">
+            <span>Ubah status</span>
+            <select
+              class="lb-input dapur__select"
+              :value="pesanan.status_pesanan"
+              :disabled="busy[pesanan.id]"
+              @change="ubahStatus(pesanan, $event.target.value)"
+            >
+              <option v-for="s in PILIHAN_STATUS" :key="s.id" :value="s.id">{{ s.label }}</option>
+            </select>
+          </label>
           <button
+            v-if="STATUS_META[pesanan.status_pesanan]?.next"
+            type="button"
+            class="lb-btn-primary dapur__cta"
+            :disabled="busy[pesanan.id]"
             @click="majukanStatus(pesanan)"
-            class="w-full py-3 rounded-full font-bold text-white text-sm transition hover:opacity-90"
-            :style="{ backgroundColor: STATUS_META[pesanan.status_pesanan].color }"
           >
-            {{ STATUS_META[pesanan.status_pesanan].nextIcon }} {{ STATUS_META[pesanan.status_pesanan].nextLabel }}
+            {{ busy[pesanan.id] ? 'Memproses...' : STATUS_META[pesanan.status_pesanan].nextLabel }}
           </button>
-        </div>
-        <div v-else class="px-5 pb-5">
-          <p class="text-center text-xs font-medium py-2.5 rounded-full" style="background-color:#E9F6EA; color:#4CAF50;">
-            ✓ Menunggu diambil pelanggan
-          </p>
-        </div>
-      </div>
+        </footer>
+      </article>
     </div>
   </div>
 </template>
+
+<style scoped>
+.dapur { padding-block: 0.5rem 1rem; }
+
+.dapur__refresh svg { width: 1rem; height: 1rem; }
+
+.dapur__toast { margin-bottom: 1rem; }
+
+.dapur__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.dapur__stat {
+  padding: 1rem 1.1rem;
+  border-top: 4px solid transparent;
+}
+.dapur__stat.is-baru { border-top-color: var(--lb-danger); }
+.dapur__stat.is-proses { border-top-color: var(--lb-brand); }
+.dapur__stat.is-siap { border-top-color: var(--lb-ok); }
+.dapur__stat-label {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--lb-muted);
+}
+.dapur__stat-num {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+}
+.dapur__sk-line { height: 0.8rem; width: 60%; margin-bottom: 0.6rem; }
+.dapur__sk-num { height: 2rem; width: 40%; }
+
+.dapur__tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  margin-bottom: 1rem;
+}
+.dapur__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--lb-line);
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--lb-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dapur__tab.is-active {
+  background: var(--lb-ink);
+  border-color: var(--lb-ink);
+  color: #fff;
+}
+.dapur__tab-count {
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.75rem;
+  background: rgba(217, 119, 87, 0.15);
+  color: inherit;
+}
+.dapur__tab.is-active .dapur__tab-count { background: var(--lb-brand); color: #fff; }
+
+.dapur__loading {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--lb-muted);
+}
+.dapur__loading p { margin: 0; }
+
+.dapur__alert p { margin: 0 0 1rem; }
+.dapur__retry { width: 100%; }
+@media (min-width: 640px) { .dapur__retry { width: auto; } }
+
+.dapur__empty-title { margin: 0 0 0.25rem; font-weight: 800; color: var(--lb-ink); }
+.dapur__empty-sub { margin: 0; font-size: 0.88rem; }
+
+.dapur__grid {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 1024px) { .dapur__grid { grid-template-columns: repeat(2, 1fr); } }
+
+.dapur__card { overflow: hidden; display: flex; flex-direction: column; }
+.dapur__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  background: #FFFBF0;
+  border-bottom: 1px solid var(--lb-line);
+}
+.dapur__order-no {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lb-brand-dark);
+}
+.dapur__order-meta { margin: 0.2rem 0 0; font-size: 0.85rem; color: var(--lb-muted); }
+
+.dapur__items {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1.15rem;
+  display: grid;
+}
+.dapur__item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding-block: 0.7rem;
+  border-bottom: 1px dashed var(--lb-line);
+}
+.dapur__item:last-child { border-bottom: none; }
+.dapur__thumb {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--lb-soft);
+  flex-shrink: 0;
+}
+.dapur__item-text { min-width: 0; }
+.dapur__item-name { margin: 0; font-size: 0.92rem; }
+.dapur__item-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--lb-muted);
+  font-style: italic;
+}
+
+.dapur__inline-err { margin: 0 1.15rem 0.75rem; }
+
+.dapur__foot { padding: 0 1.15rem 1.15rem; margin-top: auto; display: grid; gap: 0.6rem; }
+.dapur__kelola { display: grid; gap: 0.35rem; font-size: 0.78rem; font-weight: 700; color: var(--lb-muted); }
+.dapur__select { width: 100%; }
+.dapur__cta { width: 100%; }
+</style>

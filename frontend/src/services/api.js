@@ -1,10 +1,6 @@
 // API Configuration
-// Auto-detect dari alamat yang dipakai browser saat ini (window.location.hostname),
-// jadi kalau IP laptop berubah (pindah WiFi, restart hotspot, dll), URL API ikut
-// menyesuaikan otomatis tanpa perlu edit file ini setiap kali. Backend Laravel
-// diasumsikan selalu di port 8000, di mesin yang sama dengan frontend.
-// VITE_API_BASE_URL di .env tetap didahulukan kalau di-set secara eksplisit.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:8000/api'
+// ponytail: port 8000 hardcode, add when deploy multi-host.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
 
 class ApiService {
   constructor(baseURL = API_BASE_URL) {
@@ -122,23 +118,6 @@ class ApiService {
     return this.get('/menu')
   }
 
-  getMenuById(id) {
-    return this.get(`/menu/${id}`)
-  }
-
-  // ===== ORDER ENDPOINTS =====
-  placeOrder(orderData) {
-    return this.post('/orders', orderData)
-  }
-
-  getOrder(orderId) {
-    return this.get(`/orders/${orderId}`)
-  }
-
-  getOrderStatus(orderId) {
-    return this.get(`/orders/${orderId}/status`)
-  }
-
   // Backend beneran punya PATCH /pesanan/{id}/status (lihat routes/api.php).
   // Field yang divalidasi controller PesananController@updateStatus bernama
   // "status_pesanan", BUKAN "status" -- ini yang sebelumnya bikin request
@@ -148,42 +127,9 @@ class ApiService {
   }
 
   // ===== STAFF ENDPOINTS =====
-  // Backend belum punya route '/staff/orders'. Route yang beneran ada adalah
-  // GET /pesanan (semua pesanan) -- difilter per status di sisi frontend
-  // (lihat DapurPage.vue). Parameter `role` disimpan di signature untuk
-  // kompatibilitas kalau nanti backend menambah filter per role.
+  // Backend cuma punya GET /pesanan — difilter per status di frontend (lihat DapurPage.vue).
   getStaffOrders(role) {
     return this.get('/pesanan')
-  }
-
-  updateOrderProgress(orderId, progress) {
-    return this.put(`/orders/${orderId}/progress`, { progress })
-  }
-
-  completeOrder(orderId) {
-    return this.put(`/orders/${orderId}/complete`, {})
-  }
-
-  // ===== PAYMENT ENDPOINTS =====
-  processPayment(paymentData) {
-    return this.post('/payments', paymentData)
-  }
-
-  getPaymentStatus(transactionId) {
-    return this.get(`/payments/${transactionId}`)
-  }
-
-  // ===== STATISTICS ENDPOINTS =====
-  getDailyStats() {
-    return this.get('/stats/daily')
-  }
-
-  getMonthlyStats() {
-    return this.get('/stats/monthly')
-  }
-
-  getTotalRevenue() {
-    return this.get('/stats/revenue')
   }
 }
 

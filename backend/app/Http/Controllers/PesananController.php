@@ -53,6 +53,7 @@ class PesananController extends Controller
     {
         $data = $request->validate([
             'id_meja' => 'required|exists:meja,id',
+            'nama_pelanggan' => 'required|string|max:60',
             'id_waiter' => 'nullable|exists:users,id',
             'items' => 'required|array|min:1',
             'items.*.id_menu' => 'required|exists:menu,id',
@@ -66,6 +67,7 @@ class PesananController extends Controller
 
             $pesanan = Pesanan::create([
                 'id_meja' => $data['id_meja'],
+                'nama_pelanggan' => $data['nama_pelanggan'],
                 'id_waiter' => $data['id_waiter'] ?? null,
                 'tanggal_pesanan' => now(),
                 'status_pesanan' => 'baru',

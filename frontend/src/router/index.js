@@ -10,7 +10,6 @@ import StatusPage from '../views/pelanggan/StatusPage.vue'
 
 // Views - Staff
 import LoginPage from '../views/staff/LoginPage.vue'
-import WaiterPage from '../views/staff/WaiterPage.vue'
 import DapurPage from '../views/staff/DapurPage.vue'
 import KasirPage from '../views/staff/KasirPage.vue'
 import AdminPage from '../views/staff/AdminPage.vue'
@@ -56,28 +55,22 @@ const routes = [
     meta: { title: 'Login Staff - LocalBowls' }
   },
   {
-    path: '/waiter',
-    name: 'Waiter',
-    component: WaiterPage,
-    meta: { title: 'Waiter Dashboard - LocalBowls', requiresAuth: true, role: 'waiter' }
-  },
-  {
     path: '/dapur',
     name: 'Dapur',
     component: DapurPage,
-    meta: { title: 'Kitchen Dashboard - LocalBowls', requiresAuth: true, role: 'kitchen' }
+    meta: { title: 'Kitchen Dashboard - LocalBowls', requiresAuth: true, roles: ['kitchen'] }
   },
   {
     path: '/kasir',
     name: 'Kasir',
     component: KasirPage,
-    meta: { title: 'Cashier Dashboard - LocalBowls', requiresAuth: true, role: 'kasir' }
+    meta: { title: 'Cashier Dashboard - LocalBowls', requiresAuth: true, roles: ['kasir'] }
   },
   {
     path: '/admin',
     name: 'Admin',
     component: AdminPage,
-    meta: { title: 'Admin Dashboard - LocalBowls', requiresAuth: true, role: 'admin' }
+    meta: { title: 'Admin Dashboard - LocalBowls', requiresAuth: true, roles: ['admin'] }
   },
 
   // Catch all - redirect to home
@@ -92,16 +85,17 @@ const router = createRouter({
   routes
 })
 
-// Guard untuk proteksi staff routes
+// Guard: proteksi halaman staff
 router.beforeEach((to, from, next) => {
+  // Proteksi halaman staff
   const authStore = useAuthStore()
   const requiresAuth = to.meta.requiresAuth
-  const requiredRole = to.meta.role
 
   if (requiresAuth) {
+    const allowedRoles = to.meta.roles || (to.meta.role ? [to.meta.role] : null)
     if (!authStore.isAuthenticated) {
       next('/login')
-    } else if (requiredRole && authStore.user?.role !== requiredRole) {
+    } else if (allowedRoles && !allowedRoles.includes(authStore.user?.role)) {
       next('/login')
     } else {
       next()
@@ -109,6 +103,11 @@ router.beforeEach((to, from, next) => {
   } else {
     next()
   }
+})
+
+// Set judul tab browser dari meta.title
+router.afterEach((to) => {
+  if (to.meta.title) document.title = to.meta.title
 })
 
 export default router

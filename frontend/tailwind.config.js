@@ -71,8 +71,10 @@ export default {
         'cream': '0 4px 15px rgba(255, 179, 71, 0.15)',
       },
       fontFamily: {
-        'body': ['Segoe UI', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
-        'heading': ['Poppins', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Segoe UI', 'system-ui', 'sans-serif'],
+        body: ['Plus Jakarta Sans', 'Segoe UI', 'system-ui', 'sans-serif'],
+        heading: ['Fraunces', 'Georgia', 'serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
       },
       // Ditambahkan supaya .modal-overlay / .modal-content di style.css tidak
       // gagal build (dulu referensi ke class yang belum pernah didefinisikan).

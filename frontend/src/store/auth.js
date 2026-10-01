@@ -42,8 +42,6 @@ export const useAuthStore = defineStore('auth', () => {
     switch (user.value?.role) {
       case 'admin':
         return '/admin'
-      case 'waiter':
-        return '/waiter'
       case 'kitchen':
         return '/dapur'
       case 'kasir':

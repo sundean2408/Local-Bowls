@@ -1,127 +1,264 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-cream-50">
-    <!-- Navbar -->
-    <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-terracotta-100 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-        <!-- Logo -->
-        <router-link :to="{ path: '/', query: mejaQuery }" class="flex items-center gap-2 shrink-0">
-          <img src="/logo.png" alt="LocalBowls" class="w-9 h-9 rounded-full object-cover" />
-          <span class="text-lg font-bold text-terracotta-800 hidden sm:inline">LocalBowls</span>
+  <div class="min-h-screen flex flex-col">
+    <nav class="lb-nav">
+      <div class="lb-wrap lb-nav__inner">
+        <router-link to="/" class="lb-nav__brand">
+          <img src="/logo.png" alt="LocalBowls" class="lb-nav__logo-img" />
+          <span class="lb-nav__word">LocalBowls</span>
         </router-link>
 
-        <!-- Desktop Menu -->
-        <div class="hidden md:flex items-center gap-6">
-          <router-link
-            :to="{ path: '/', query: mejaQuery }"
-            class="text-sm font-medium text-earth-dark hover:text-terracotta-600 transition"
-          >Beranda</router-link>
-          <router-link
-            :to="{ path: '/menu', query: mejaQuery }"
-            class="text-sm font-medium text-earth-dark hover:text-terracotta-600 transition"
-          >Menu</router-link>
-          <router-link
-            :to="{ path: '/status', query: mejaQuery }"
-            class="text-sm font-medium text-earth-dark hover:text-terracotta-600 transition"
-          >Status Pesanan</router-link>
+        <div class="lb-nav__links">
+          <router-link to="/" class="lb-nav__link">Beranda</router-link>
+          <router-link to="/menu" class="lb-nav__link">Menu</router-link>
+          <router-link to="/status" class="lb-nav__link">Status Pesanan</router-link>
         </div>
 
-        <!-- Info Meja & Pelanggan + Cart + Burger -->
-        <div class="flex items-center gap-3">
-          <div v-if="nomorMeja" class="hidden sm:flex flex-col items-end leading-tight">
-            <span class="text-xs text-earth-dark/70">{{ namaPelanggan || 'Tamu' }}</span>
-            <span class="text-xs font-semibold text-terracotta-700">Meja {{ nomorMeja }}</span>
-          </div>
-
-          <router-link :to="{ path: '/keranjang', query: mejaQuery }" class="relative">
-            <button
-              class="relative w-10 h-10 flex items-center justify-center rounded-lg border border-terracotta-100 hover:bg-terracotta-50 transition"
-              aria-label="Keranjang"
-            >
-              <span class="text-lg">🛒</span>
-              <span
-                v-if="cartStore.itemCount > 0"
-                class="absolute -top-1.5 -right-1.5 bg-terracotta-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center"
-              >{{ cartStore.itemCount }}</span>
-            </button>
+        <div class="lb-nav__actions">
+          <router-link to="/keranjang" class="lb-nav__cart" aria-label="Keranjang">
+            <svg class="lb-nav__cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 6h15l-1.5 9H7L6 6z"/><path d="M6 6L5 2H2"/><circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/></svg>
+            <span v-if="cartStore.totalItems > 0" class="lb-nav__badge">{{ cartStore.totalItems }}</span>
           </router-link>
-
-          <button
-            @click="mobileMenuOpen = !mobileMenuOpen"
-            class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg border border-terracotta-100 hover:bg-terracotta-50 transition"
-            aria-label="Menu"
-          >
-            <span class="text-lg">{{ mobileMenuOpen ? '✕' : '☰' }}</span>
+          <button type="button" class="lb-nav__burger" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Menu">
+            <span v-if="!mobileMenuOpen" aria-hidden="true">☰</span>
+            <span v-else aria-hidden="true">✕</span>
           </button>
         </div>
       </div>
-
-      <!-- Mobile Menu -->
-      <div v-if="mobileMenuOpen" class="md:hidden bg-cream-50 border-t border-terracotta-100 px-4 py-3 flex flex-col gap-1">
-        <div v-if="nomorMeja" class="pb-2 mb-1 border-b border-terracotta-100 text-sm">
-          <span class="text-earth-dark/70">{{ namaPelanggan || 'Tamu' }}</span>
-          <span class="font-semibold text-terracotta-700"> · Meja {{ nomorMeja }}</span>
-        </div>
-        <router-link @click="mobileMenuOpen = false" :to="{ path: '/', query: mejaQuery }" class="py-2 text-sm font-medium text-earth-dark">Beranda</router-link>
-        <router-link @click="mobileMenuOpen = false" :to="{ path: '/menu', query: mejaQuery }" class="py-2 text-sm font-medium text-earth-dark">Menu</router-link>
-        <router-link @click="mobileMenuOpen = false" :to="{ path: '/status', query: mejaQuery }" class="py-2 text-sm font-medium text-earth-dark">Status Pesanan</router-link>
+      <div v-if="mobileMenuOpen" class="lb-nav__mobile">
+        <router-link @click="mobileMenuOpen = false" to="/" class="lb-nav__mobile-link">Beranda</router-link>
+        <router-link @click="mobileMenuOpen = false" to="/menu" class="lb-nav__mobile-link">Menu</router-link>
+        <router-link @click="mobileMenuOpen = false" to="/status" class="lb-nav__mobile-link">Status Pesanan</router-link>
       </div>
     </nav>
 
-    <!-- Konten halaman -->
     <main class="flex-1">
       <slot />
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-terracotta-900 text-cream-100 mt-16">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 sm:grid-cols-3 gap-8 text-sm">
+    <footer class="lb-footer">
+      <div class="lb-wrap lb-footer__grid">
         <div>
-          <p class="text-lg font-bold text-white mb-2">🍜 LocalBowls</p>
-          <p class="text-cream-100/80">Semangkuk mie hangat, dari dapur ke mejamu.</p>
+          <p class="lb-footer__brand"><img src="/logo.png" alt="" class="lb-footer__logo-img" /> LocalBowls</p>
+          <p class="lb-footer__muted">Semangkuk mie hangat, dari dapur ke mejamu. Pesan tanpa antre, lacak pesanan real-time.</p>
         </div>
         <div>
-          <p class="font-semibold text-white mb-2">Menu</p>
-          <ul class="space-y-1 text-cream-100/80">
-            <li><router-link :to="{ path: '/menu', query: mejaQuery }" class="hover:text-white">Lihat Menu</router-link></li>
-            <li><router-link :to="{ path: '/status', query: mejaQuery }" class="hover:text-white">Status Pesanan</router-link></li>
+          <p class="lb-footer__head">Jelajah</p>
+          <ul class="lb-footer__links">
+            <li><router-link to="/menu">Lihat Menu</router-link></li>
+            <li><router-link to="/status">Status Pesanan</router-link></li>
+            <li><router-link to="/keranjang">Keranjang</router-link></li>
           </ul>
         </div>
         <div>
-          <p class="font-semibold text-white mb-2">Kontak</p>
-          <ul class="space-y-1 text-cream-100/80">
-            <li>Yogyakarta, Indonesia</li>
-            <li>info@localbowls.id</li>
-          </ul>
+          <p class="lb-footer__head">Lokasi</p>
+          <p class="lb-footer__muted">Yogyakarta, Indonesia<br />info@localbowls.id</p>
         </div>
       </div>
-      <div class="border-t border-white/10 py-4 text-center text-xs text-cream-100/60">
-        &copy; {{ currentYear }} LocalBowls. All rights reserved.
-      </div>
+      <div class="lb-footer__copy">&copy; {{ currentYear }} LocalBowls · Rasa Lokal untuk Semua</div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref } from 'vue'
 import { useCartStore } from '../store/cart.js'
 
-const route = useRoute()
 const cartStore = useCartStore()
 const mobileMenuOpen = ref(false)
 const currentYear = new Date().getFullYear()
-
-// Nomor meja: prioritas dari query ?meja=, fallback ke sesi yang tersimpan
-// di cartStore supaya tetap terbawa walau berpindah halaman tanpa query.
-const nomorMeja = computed(() => route.query.meja || cartStore.customerInfo.table || '')
-const namaPelanggan = computed(() => cartStore.customerInfo.name)
-const mejaQuery = computed(() => (nomorMeja.value ? { meja: nomorMeja.value } : {}))
-
-watch(
-  () => route.query.meja,
-  (meja) => {
-    if (meja) cartStore.setCustomerInfo({ table: meja })
-  },
-  { immediate: true }
-)
 </script>
+
+<style scoped>
+.lb-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(253, 246, 236, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--lb-line);
+}
+.lb-nav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.85rem;
+}
+.lb-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--lb-ink);
+  font-weight: 800;
+}
+.lb-nav__logo {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--lb-brand);
+  color: #fff;
+  font-size: 1.1rem;
+}
+.lb-nav__logo-img {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+  border: 1px solid var(--lb-line);
+}
+.lb-nav__word {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+.lb-nav__links {
+  display: none;
+  align-items: center;
+  gap: 1.35rem;
+}
+.lb-nav__link {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--lb-muted);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.lb-nav__link:hover { color: var(--lb-ink); }
+.lb-nav__link.router-link-active,
+.lb-nav__link.router-link-exact-active {
+  color: var(--lb-ink);
+  border-bottom-color: var(--lb-brand);
+}
+.lb-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.lb-nav__cart {
+  position: relative;
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--lb-line);
+  background: #fff;
+  color: var(--lb-ink);
+  text-decoration: none;
+}
+.lb-nav__cart:hover { border-color: var(--lb-brand); }
+.lb-nav__cart-icon { width: 20px; height: 20px; }
+.lb-nav__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--lb-brand);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--lb-bg);
+}
+.lb-nav__burger {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 12px;
+  border: 1px solid var(--lb-line);
+  background: #fff;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+.lb-nav__mobile {
+  border-top: 1px solid var(--lb-line);
+  background: #FFFBF0;
+  padding: 0.65rem 1rem 0.85rem;
+  display: grid;
+  gap: 0.2rem;
+}
+.lb-nav__mobile-link {
+  padding: 0.65rem 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--lb-muted);
+  text-decoration: none;
+  border-radius: 10px;
+}
+.lb-nav__mobile-link:hover { background: #fff; color: var(--lb-ink); }
+
+.lb-footer {
+  margin-top: 2rem;
+  background: #2A1608;
+  color: #FFD9A3;
+}
+.lb-footer__grid {
+  display: grid;
+  gap: 2rem;
+  padding-block: 2.5rem;
+}
+.lb-footer__brand {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.lb-footer__logo-img {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+}
+.lb-footer__head {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.6rem;
+}
+.lb-footer__muted {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  opacity: 0.85;
+  margin: 0;
+}
+.lb-footer__links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.lb-footer__links a {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.85;
+  font-size: 0.88rem;
+}
+.lb-footer__links a:hover { opacity: 1; color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.lb-footer__copy {
+  border-top: 1px solid rgba(255,255,255,0.12);
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.78rem;
+  opacity: 0.6;
+}
+@media (min-width: 820px) {
+  .lb-nav__links { display: flex; }
+  .lb-nav__burger,
+  .lb-nav__mobile { display: none; }
+  .lb-footer__grid { grid-template-columns: 1.4fr 0.8fr 0.9fr; }
+}
+</style>
