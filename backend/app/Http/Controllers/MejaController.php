@@ -17,12 +17,16 @@ class MejaController extends Controller
     {
         $data = $request->validate([
             'nomor_meja' => 'required|string|max:50|unique:meja,nomor_meja',
-            'qr_code' => 'nullable|string',
         ]);
 
         $data['status_meja'] = 'kosong';
 
-        return Meja::create($data);
+        // qr_code digenerate server dari id meja, bukan input user.
+        // ponytail: isi URL publik /menu?meja={id} bila domain final sudah fix.
+        $meja = Meja::create($data);
+        $meja->update(['qr_code' => 'table=' . $meja->id]);
+
+        return $meja->fresh();
     }
 
     public function show(Meja $meja)
@@ -39,7 +43,7 @@ class MejaController extends Controller
                 'max:50',
                 Rule::unique('meja', 'nomor_meja')->ignore($meja->id),
             ],
-            'qr_code' => 'sometimes|nullable|string',
+            'qr_code' => 'sometimes|nullable|string|max:255',
             'status_meja' => 'sometimes|in:kosong,terisi',
         ]);
 

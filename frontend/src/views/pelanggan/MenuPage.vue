@@ -1,9 +1,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import api, { getImageUrl } from '@/services/api'
 import { useCartStore } from '../../store/cart'
 
 const cart = useCartStore()
+const route = useRoute()
+
+// Scan QR meja -> /menu?meja={id}: simpan agar Konfirmasi bisa preselect.
+const mejaDariQR = String(route.query.meja ?? '')
+if (mejaDariQR) localStorage.setItem('lastMejaId', mejaDariQR)
 
 // ===== STATE =====
 const menuList = ref([])

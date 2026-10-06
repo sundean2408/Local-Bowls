@@ -127,7 +127,15 @@ onMounted(() => {
     router.push('/menu')
     return
   }
-  loadMeja()
+  loadMeja().then(() => {
+    // Preselect dari scan QR (/menu?meja={id} disimpan di localStorage oleh MenuPage)
+    // atau sisa sesi terakhir; abaikan bila meja terisi / tidak dikenal.
+    const saved = String(localStorage.getItem('lastMejaId') || '')
+    if (saved && !idMeja.value) {
+      const target = daftarMeja.value.find((m) => String(m.id) === saved)
+      if (target && !isTerisi(target)) idMeja.value = String(target.id)
+    }
+  })
 })
 </script>
 

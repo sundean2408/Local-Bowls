@@ -19,7 +19,7 @@ class UserController extends Controller
             'nama' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,waiter,kitchen,kasir',
+            'role' => 'required|in:admin,kitchen,kasir',
         ]);
 
         $data['password'] = Hash::make($data['password']);
@@ -38,7 +38,7 @@ class UserController extends Controller
             'nama' => 'sometimes|string|max:255',
             'username' => 'sometimes|string|max:255|unique:users,username,' . $user->id,
             'password' => 'sometimes|nullable|string|min:6',
-            'role' => 'sometimes|in:admin,waiter,kitchen,kasir',
+            'role' => 'sometimes|in:admin,kitchen,kasir',
         ]);
 
         if (!empty($data['password'])) {

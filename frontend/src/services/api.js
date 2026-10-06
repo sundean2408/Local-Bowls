@@ -32,7 +32,12 @@ class ApiService {
     // Backslash tidak valid di URL, jadi harus dikonversi ke forward slash dulu,
     // baru dibuang slash di depan (kalau ada).
     const cleanPath = imagePath.replace(/\\/g, '/').replace(/^\//, '')
-    return `${this.baseURL.replace('/api', '')}/${cleanPath}`
+    // Upload admin via disk public tersimpan sebagai "menu/xxx.jpg"
+    // -> di-serve lewat symlink public/storage, jadi prefix storage/.
+    // Seeder pakai "images/menu/xxx.jpg" -> langsung di public, tanpa prefix.
+    // ponytail: unifikasi ke satu folder bila ganti storage driver.
+    const publicPath = cleanPath.startsWith('menu/') ? `storage/${cleanPath}` : cleanPath
+    return `${this.baseURL.replace('/api', '')}/${publicPath}`
   }
 
   // GET request
@@ -107,7 +112,14 @@ class ApiService {
   async handleResponse(response) {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
-      throw new Error(error.message || `HTTP ${response.status}`)
+      // Auto-logout kalau token expired / role ditolak, biar tidak stuck
+      if ([401, 403].includes(response.status)) {
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
+        localStorage.removeItem('nama_user')
+      }
+      const message = error.message || (error.errors ? JSON.stringify(error.errors) : '') || `HTTP ${response.status}`
+      throw new Error(message)
     }
     return await response.json()
   }
@@ -134,6 +146,7 @@ class ApiService {
   // ===== STAFF ENDPOINTS =====
   // Backend cuma punya GET /pesanan — difilter per status di frontend (lihat DapurPage.vue).
   getStaffOrders(role) {
+    void role
     return this.get('/pesanan')
   }
 }
@@ -147,7 +160,7 @@ export function getImageUrl(imagePath, fallback = '/logo.png') {
   return apiInstance.getImageUrl(imagePath, fallback)
 }
 
-// MenuPage.vue memakai nama berbeda: `storageUrl` (string base URL, bukan fungsi).
-// Foto menu ada langsung di public/images/menu (bukan storage/app/public),
-// jadi base-nya cukup URL backend tanpa suffix apa pun.
+// MenuPage.vue memakai storageUrl? Tidak lagi — pakai getImageUrl() supaya
+// konsisten (upload admin lewat storage/, seeder lewat images/).
+// Export ini dipertahankan supaya import lama tidak pecah.
 export const storageUrl = API_BASE_URL.replace('/api', '')

@@ -157,7 +157,23 @@ const menuTerbaru = computed(() => [...menuList.value].sort((a, b) => (b.id || 0
 const loadUsers = async () => { try { const r = await api.get('/users'); userList.value = Array.isArray(r) ? r : (r.data ?? []) } catch (e) { console.error(e) } }
 const loadMenus = async () => { try { const r = await api.get('/menu'); menuList.value = Array.isArray(r) ? r : (r.data ?? []) } catch (e) { console.error(e) } }
 const loadKategori = async () => { try { const r = await api.get('/kategori'); kategoriList.value = Array.isArray(r) ? r : (r.data ?? []) } catch (e) { console.error(e) } }
-const loadMeja = async () => { try { const r = await api.get('/meja'); mejaList.value = Array.isArray(r) ? r : (r.data ?? []) } catch (e) { console.error(e) } }
+const loadMeja = async () => {
+  try {
+    const r = await api.get('/meja')
+    mejaList.value = Array.isArray(r) ? r : (r.data ?? [])
+    // Pre-generate QR tiap meja sekali saat data dimuat (bukan saat render).
+    for (const meja of mejaList.value) {
+      const raw = String(meja.qr_code || `table=${meja.id}`)
+      if (!qrCache.value[raw]) {
+        try {
+          qrCache.value[raw] = await QRCode.toDataURL(raw, { width: 220, margin: 1 })
+        } catch {
+          qrCache.value[raw] = ''
+        }
+      }
+    }
+  } catch (e) { console.error(e) }
+}
 const loadLaporan = async () => {
   try {
     const r = await api.get('/laporan')
@@ -246,6 +262,14 @@ const saveKategori = async () => {
   } catch (e) { alert(e.message || 'Gagal menyimpan kategori') }
 }
 const deleteKategori = async (id) => { if (!confirm('Yakin hapus kategori ini?')) return; try { await api.delete(`/kategori/${id}`); await loadKategori() } catch (e) { alert(e.message || 'Gagal menghapus kategori') } }
+
+import QRCode from 'qrcode'
+
+// ===== QR MEJA =====
+// Generate PNG data-URL dari isi qr_code meja (format "table={id}").
+// ponytail: ganti isi jadi URL publik /menu?meja={id} bila domain final fix.
+const qrCache = ref({})
+const qrSrc = (meja) => qrCache.value[String(meja.qr_code || `table=${meja.id}`)] || ''
 
 // ===== LOGOUT =====
 const handleLogout = async () => { await authStore.logout(); router.push('/login') }
@@ -478,11 +502,12 @@ onMounted(() => loadAll())
           <div class="adm__section-head"><h2>Kelola Meja</h2><button @click="openMejaModal()" class="lb-btn-primary">+ Tambah Meja</button></div>
           <div class="lb-card adm__table-wrap">
             <table class="adm__table">
-              <thead><tr><th>ID</th><th>Nomor Meja</th><th>Status</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>ID</th><th>Nomor Meja</th><th>QR Code</th><th>Status</th><th>Aksi</th></tr></thead>
               <tbody>
                 <tr v-for="meja in mejaList" :key="meja.id">
                   <td>{{ meja.id }}</td>
                   <td><strong>Meja {{ meja.nomor_meja }}</strong></td>
+                  <td><img v-if="qrSrc(meja)" :src="qrSrc(meja)" :alt="`QR Meja ${meja.nomor_meja}`" style="width:3.2rem;height:3.2rem;image-rendering:pixelated;border-radius:6px;background:#fff;border:1px solid var(--lb-line);" loading="lazy" /><span v-else style="font-size:0.72rem;color:var(--lb-muted);">…</span></td>
                   <td>
                     <button type="button" @click="toggleStatusMeja(meja)" class="adm__chip" :style="{ background: meja.status_meja === 'kosong' ? 'var(--lb-green-bg)' : 'var(--lb-red-bg)', color: meja.status_meja === 'kosong' ? 'var(--lb-green-text)' : 'var(--lb-red-text)', border: 'none', cursor: 'pointer' }">
                       {{ meja.status_meja }}
@@ -490,7 +515,7 @@ onMounted(() => loadAll())
                   </td>
                   <td><div class="adm__actions"><button @click="openMejaModal(meja)" class="adm__act-edit">Edit</button><button @click="deleteMeja(meja.id)" class="adm__act-del">Hapus</button></div></td>
                 </tr>
-                <tr v-if="mejaList.length === 0"><td colspan="4" style="text-align:center;color:var(--lb-muted);padding:2rem;">Belum ada meja. Klik “+ Tambah Meja” untuk menambah yang pertama.</td></tr>
+                <tr v-if="mejaList.length === 0"><td colspan="5" style="text-align:center;color:var(--lb-muted);padding:2rem;">Belum ada meja. Klik “+ Tambah Meja” untuk menambah yang pertama.</td></tr>
               </tbody>
             </table>
           </div>

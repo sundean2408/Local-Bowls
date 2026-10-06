@@ -24,13 +24,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
-    Route::apiResource('users', UserController::class);
-    Route::apiResource('kategori', KategoriController::class)->except('index');
-    Route::apiResource('menu', MenuController::class)->except('index');
-    Route::apiResource('meja', MejaController::class)->except('index');
-    Route::get('/pesanan', [PesananController::class, 'index']);
-    Route::get('/pesanan/siap-bayar', [PesananController::class, 'siapBayar']);
-    Route::patch('/pesanan/{pesanan}/status', [PesananController::class, 'updateStatus']);
-    Route::apiResource('pembayaran', PembayaranController::class);
-    Route::get('/laporan', [LaporanController::class, 'index']);
+    // Dapur: kelola status pesanan saja
+    Route::middleware('role:kitchen,admin')->group(function () {
+        Route::get('/pesanan', [PesananController::class, 'index']);
+        Route::patch('/pesanan/{pesanan}/status', [PesananController::class, 'updateStatus']);
+    });
+
+    // Kasir: antrean siap bayar + pembayaran + riwayat
+    Route::middleware('role:kasir,admin')->group(function () {
+        Route::get('/pesanan/siap-bayar', [PesananController::class, 'siapBayar']);
+        Route::apiResource('pembayaran', PembayaranController::class);
+    });
+
+    // Admin: semua kelola + laporan
+    Route::middleware('role:admin')->group(function () {
+        Route::apiResource('users', UserController::class);
+        Route::apiResource('kategori', KategoriController::class)->except('index');
+        Route::apiResource('menu', MenuController::class)->except('index');
+        Route::apiResource('meja', MejaController::class)->except('index');
+        Route::get('/laporan', [LaporanController::class, 'index']);
+    });
 });
