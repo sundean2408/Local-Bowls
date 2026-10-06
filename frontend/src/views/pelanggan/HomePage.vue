@@ -14,11 +14,21 @@ const heroSlides = [
 const getFallbackImg = () => '/logo.png'
 
 const activeIndex = ref(0)
+const carouselPaused = ref(false)
 let intervalId = null
 
 function goToSlide(i) { activeIndex.value = i }
 function prevSlide() { activeIndex.value = (activeIndex.value - 1 + heroSlides.length) % heroSlides.length }
 function nextSlide() { activeIndex.value = (activeIndex.value + 1) % heroSlides.length }
+function toggleCarousel() {
+  carouselPaused.value = !carouselPaused.value
+  if (carouselPaused.value && intervalId) {
+    clearInterval(intervalId)
+    intervalId = null
+  } else if (!carouselPaused.value) {
+    intervalId = setInterval(nextSlide, 4500)
+  }
+}
 
 // --- Menu Favorit (Top Mie Terlaris) ---
 const menuFavorit = ref([])
@@ -72,7 +82,11 @@ const paragraf = [
 ]
 
 onMounted(() => {
-  intervalId = setInterval(nextSlide, 4500)
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    intervalId = setInterval(nextSlide, 4500)
+  } else {
+    carouselPaused.value = true
+  }
   fetchMenuFavorit()
   window.addEventListener('scroll', onScroll, { passive: true })
   updateOnScroll()
@@ -86,7 +100,7 @@ onUnmounted(() => {
 <template>
   <div class="lb-page">
     <!-- ===== HERO ===== -->
-    <section class="hero">
+    <section class="hero" aria-label="Sorotan menu">
       <!-- Foto full-bleed sebagai background -->
       <div class="hero__media">
         <transition-group name="fade">
@@ -129,18 +143,23 @@ onUnmounted(() => {
       </div>
 
       <!-- Panah navigasi -->
-      <button class="hero__arrow hero__arrow--prev" @click="prevSlide" aria-label="Slide sebelumnya">‹</button>
-      <button class="hero__arrow hero__arrow--next" @click="nextSlide" aria-label="Slide berikutnya">›</button>
+      <button type="button" class="hero__arrow hero__arrow--prev" @click="prevSlide" aria-label="Slide sebelumnya">‹</button>
+      <button type="button" class="hero__arrow hero__arrow--next" @click="nextSlide" aria-label="Slide berikutnya">›</button>
+      <button type="button" class="hero__pause" @click="toggleCarousel" :aria-label="carouselPaused ? 'Putar otomatis slide' : 'Jeda slide otomatis'">
+        {{ carouselPaused ? 'Putar' : 'Jeda' }}
+      </button>
 
       <!-- Dots -->
       <div class="hero__dots">
         <button
           v-for="(slide, i) in heroSlides"
           :key="'dot-' + i"
+          type="button"
           @click="goToSlide(i)"
           class="hero__dot"
           :class="{ 'is-active': i === activeIndex }"
           :aria-label="`Lihat ${slide.nama}`"
+          :aria-current="i === activeIndex ? 'true' : undefined"
         ></button>
       </div>
     </section>
@@ -177,6 +196,7 @@ onUnmounted(() => {
           <p class="mie-card__kategori">{{ item.kategori?.nama_kategori || 'Menu' }}</p>
           <h3 class="mie-card__nama">{{ item.nama_menu }}</h3>
           <p class="mie-card__harga">Rp {{ new Intl.NumberFormat('id-ID').format(item.harga) }}</p>
+          <p class="mie-card__deskripsi" style="font-size:0.82rem;color:var(--lb-text-soft);display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:0.25rem;">{{ item.deskripsi || 'Racikan rempah pilihan, disajikan hangat.' }}</p>
         </article>
 
         <p v-if="menuFavorit.length === 0" class="top-menu__kosong">Belum ada menu tersedia. <router-link to="/menu" class="top-menu__link">Lihat semua menu →</router-link></p>
@@ -283,7 +303,9 @@ onUnmounted(() => {
   position: relative;
   min-height: 86vh;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
   overflow: hidden;
   color: #fff;
 }
@@ -357,10 +379,18 @@ onUnmounted(() => {
 .hero__arrow:hover { background: rgba(255,255,255,0.32); }
 .hero__arrow--prev { left: 1.25rem; }
 .hero__arrow--next { right: 1.25rem; }
+.hero__pause {
+  position: absolute; z-index: 2; right: 1rem; bottom: 0.7rem; min-height: 2.75rem;
+  border: 1px solid rgba(255,255,255,0.65); border-radius: 999px; padding: 0.45rem 0.8rem;
+  background: rgba(35,20,10,0.55); color: #fff; font: inherit; font-size: 0.75rem; cursor: pointer;
+}
 
 .hero__dots { position: relative; z-index: 1; display: flex; gap: 0.5rem; margin: 0 auto; padding: 0 1.25rem 1.5rem; }
 .hero__dot { width: 8px; height: 8px; border-radius: 999px; background: rgba(255,255,255,0.4); border: none; cursor: pointer; transition: all 0.2s ease; }
 .hero__dot.is-active { width: 26px; background: #fff; }
+.hero :is(button, a):focus-visible, .top-menu a:focus-visible, .sorotan a:focus-visible, .tentang a:focus-visible {
+  outline: 3px solid #fff; outline-offset: 3px;
+}
 
 /* ===== TOP MENU ===== */
 .top-menu { padding: 1rem 1.25rem 3rem; max-width: 1120px; margin: 0 auto; }
@@ -389,9 +419,10 @@ onUnmounted(() => {
 .mie-card__kategori { font-size: 0.7rem; font-weight: 700; color: var(--lb-accent); text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 0.15rem; }
 .mie-card__nama {
   font-size: 0.95rem; font-weight: 600; margin: 0 0 0.3rem; line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em;
+  display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em;
 }
 .mie-card__harga { font-weight: 700; color: var(--lb-accent); margin: auto 0 0; }
+.mie-card__deskripsi { line-height: 1.45; }
 
 /* ===== SOROTAN MENU (selang-seling) ===== */
 .sorotan { padding: 1rem 1.25rem 3rem; max-width: 1000px; margin: 0 auto; }
@@ -442,6 +473,22 @@ onUnmounted(() => {
 .reveal-item { opacity: 0; transform: translateY(30px); animation: revealIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 @keyframes revealIn { to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .reveal-item { opacity: 1; transform: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+@media (max-width: 380px) {
+  .hero { min-height: 38rem; }
+  .hero__inner { padding-inline: 1rem; padding-bottom: 5rem; }
+  .hero__title { font-size: clamp(1.8rem, 9vw, 2.4rem); }
+  .hero__badge { top: 0.8rem; right: 0.8rem; }
+  .hero__actions > * { flex: 1 1 100%; }
+  .hero__dots { margin-inline: 0; }
+  .top-menu__grid { gap: 0.55rem; }
+  .mie-card { padding: 0.7rem; border-radius: 18px 9px; }
+  .mie-card__nama { font-size: 0.86rem; }
+  .mie-card__deskripsi { font-size: 0.75rem !important; }
+}
 
 /* ===== TABLET (600px ke atas) ===== */
 @media (min-width: 600px) and (max-width: 899px) {

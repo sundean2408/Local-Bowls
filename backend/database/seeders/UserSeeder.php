@@ -10,25 +10,48 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
-            'nama' => 'Admin Utama',
-            'username' => 'admin',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
-        ]);
+        if (app()->environment('production')) {
+            $username = trim((string) config('app.bootstrap_admin.username'));
+            $password = (string) config('app.bootstrap_admin.password');
 
-        User::create([
-            'nama' => 'Sari Kitchen',
-            'username' => 'kitchen',
-            'password' => Hash::make('kitchen123'),
-            'role' => 'kitchen',
-        ]);
+            if ($username === '' || strlen($password) < 16) {
+                throw new \RuntimeException(
+                    'Set ADMIN_USERNAME and ADMIN_PASSWORD (at least 16 characters) before seeding production users.',
+                );
+            }
 
-        User::create([
-            'nama' => 'Andi Kasir',
-            'username' => 'kasir',
-            'password' => Hash::make('kasir123'),
-            'role' => 'kasir',
-        ]);
+            $existingUser = User::where('username', $username)->first();
+            if ($existingUser && $existingUser->role !== 'admin') {
+                throw new \RuntimeException('ADMIN_USERNAME is already assigned to a non-admin user.');
+            }
+
+            User::firstOrCreate(
+                ['username' => $username],
+                [
+                    'nama' => config('app.bootstrap_admin.name', 'Admin Utama'),
+                    'password' => Hash::make($password),
+                    'role' => 'admin',
+                ],
+            );
+
+            return;
+        }
+
+        $accounts = [
+            ['nama' => 'Admin Utama', 'username' => 'admin', 'password' => 'admin123', 'role' => 'admin'],
+            ['nama' => 'Sari Kitchen', 'username' => 'kitchen', 'password' => 'kitchen123', 'role' => 'kitchen'],
+            ['nama' => 'Andi Kasir', 'username' => 'kasir', 'password' => 'kasir123', 'role' => 'kasir'],
+        ];
+
+        foreach ($accounts as $account) {
+            User::firstOrCreate(
+                ['username' => $account['username']],
+                [
+                    'nama' => $account['nama'],
+                    'password' => Hash::make($account['password']),
+                    'role' => $account['role'],
+                ],
+            );
+        }
     }
 }

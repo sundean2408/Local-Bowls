@@ -15,4 +15,7 @@ npm run preview   # preview hasil build
 
 ## Konfigurasi
 
-Salin `.env.example` ke `.env` dan atur `VITE_API_URL` sesuai alamat backend.
+Salin `.env.example` ke `.env` dan atur `VITE_API_BASE_URL` sesuai alamat API
+backend, termasuk suffix `/api`, contohnya `http://localhost:8000/api`.
+Untuk hosting, atur variabel ini sebelum menjalankan `npm run build`; nilainya
+akan disisipkan ke hasil build di `dist/`.

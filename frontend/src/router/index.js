@@ -94,9 +94,10 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth) {
     const allowedRoles = to.meta.roles || (to.meta.role ? [to.meta.role] : null)
     if (!authStore.isAuthenticated) {
-      next('/login')
+      next({ name: 'Login', query: { redirect: to.fullPath } })
     } else if (allowedRoles && !allowedRoles.includes(authStore.user?.role)) {
-      next('/login')
+      const roleHome = authStore.roleHomePath()
+      next(roleHome === to.fullPath ? '/login' : roleHome)
     } else {
       next()
     }

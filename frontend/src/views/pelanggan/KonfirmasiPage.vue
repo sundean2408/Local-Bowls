@@ -146,6 +146,7 @@ onMounted(() => {
         :key="s.no"
         class="konfirm__step"
         :class="{ 'is-done': s.done, 'is-current': i === (idMeja ? (namaPemesan.trim() ? 2 : 1) : 0) }"
+        :aria-current="i === (idMeja ? (namaPemesan.trim() ? 2 : 1) : 0) ? 'step' : undefined"
       >
         <span class="konfirm__dot">{{ s.done ? '✓' : s.no }}</span>
         <span class="konfirm__cap">{{ s.label }}</span>
@@ -171,7 +172,7 @@ onMounted(() => {
             <span v-if="mejaDipilih" class="konfirm__picked">Meja {{ mejaDipilih.nomor_meja }}</span>
           </header>
 
-          <div v-if="loadingMeja" class="konfirm__meja-grid">
+          <div v-if="loadingMeja" class="konfirm__meja-grid" role="status" aria-label="Memuat daftar meja">
             <div v-for="i in 8" :key="i" class="lb-skeleton konfirm__meja-sk"></div>
           </div>
           <div v-else-if="daftarMeja.length > 0" class="konfirm__meja-grid">
@@ -184,6 +185,7 @@ onMounted(() => {
               class="konfirm__meja"
               :class="{ 'is-picked': isDipilih(meja), 'is-full': isTerisi(meja) }"
               :aria-pressed="isDipilih(meja)"
+              :aria-label="`Meja ${meja.nomor_meja}, ${isTerisi(meja) ? 'terisi' : isDipilih(meja) ? 'dipilih' : 'kosong'}`"
             >
               <span class="konfirm__meja-no">{{ meja.nomor_meja }}</span>
               <span class="konfirm__meja-state">{{ isTerisi(meja) ? 'Terisi' : isDipilih(meja) ? 'Dipilih' : 'Kosong' }}</span>
@@ -204,7 +206,8 @@ onMounted(() => {
               <p>Nama dipakai dapur & kasir untuk memanggil pesanan.</p>
             </div>
           </header>
-          <input v-model="namaPemesan" type="text" class="lb-input" placeholder="Nama pemesan (wajib diisi)" maxlength="60" required />
+          <label class="konfirm__field-label" for="nama-pemesan">Nama pemesan <span>(wajib diisi)</span></label>
+          <input id="nama-pemesan" v-model="namaPemesan" type="text" class="lb-input" placeholder="Contoh: Dinda" maxlength="60" autocomplete="name" required />
         </section>
 
         <!-- 3 ITEM -->
@@ -231,7 +234,8 @@ onMounted(() => {
                   <button type="button" class="konfirm__remove" @click="cart.removeItem(item.id)" :aria-label="`Hapus ${item.nama_menu}`">✕</button>
                 </div>
                 <p class="konfirm__meta">{{ item.qty }}× @ Rp {{ fmt(item.harga) }}</p>
-                <input v-model="item.catatan" type="text" class="konfirm__note" placeholder="Catatan (opsional)" maxlength="120" />
+                <label class="konfirm__sr-only" :for="`catatan-${item.id}`">Catatan untuk {{ item.nama_menu }} (opsional)</label>
+                <input :id="`catatan-${item.id}`" v-model="item.catatan" type="text" class="konfirm__note" placeholder="Catatan (opsional)" maxlength="120" />
                 <p class="konfirm__sub">Rp {{ fmt(item.qty * item.harga) }}</p>
               </div>
             </li>
@@ -253,8 +257,8 @@ onMounted(() => {
             <strong>Rp {{ fmt(totalHarga) }}</strong>
           </div>
 
-          <p v-if="errorMsg" class="lb-alert lb-alert--error">{{ errorMsg }}</p>
-          <p v-if="successMsg" class="lb-alert lb-alert--ok">{{ successMsg }}</p>
+          <p v-if="errorMsg" role="alert" class="lb-alert lb-alert--error">{{ errorMsg }}</p>
+          <p v-if="successMsg" role="status" aria-live="polite" class="lb-alert lb-alert--ok">{{ successMsg }}</p>
 
           <button type="button" class="lb-btn-primary konfirm__submit" :disabled="submitting || !idMeja || !namaPemesan.trim()" @click="submitPesanan">
             {{ submitting ? 'Mengirim...' : !idMeja ? 'Pilih Meja Dulu' : !namaPemesan.trim() ? 'Isi Nama Dulu' : 'Konfirmasi Pesanan' }}
@@ -268,6 +272,9 @@ onMounted(() => {
 
 <style scoped>
 .konfirm { padding-block: 0.5rem 3rem; }
+.konfirm__sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.konfirm__field-label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; font-weight: 700; }
+.konfirm__field-label span { color: var(--lb-muted); font-weight: 500; }
 
 /* Stepper: titik + garis penghubung */
 .konfirm__steps {
@@ -377,4 +384,16 @@ onMounted(() => {
 .konfirm__summary .lb-alert { margin: 0.9rem 0 0; }
 .konfirm__submit { width: 100%; margin-top: 0.9rem; }
 .konfirm__hint { margin: 0.6rem 0 0; text-align: center; font-size: 0.78rem; color: var(--lb-faint); }
+.konfirm :is(a, button, input):focus-visible { outline: 3px solid var(--lb-brand); outline-offset: 3px; }
+@media (max-width: 380px) {
+  .konfirm__card, .konfirm__summary { padding: 1rem; }
+  .konfirm__steps { gap: 0.2rem; }
+  .konfirm__step { gap: 0.3rem; }
+  .konfirm__cap { font-size: 0.72rem; }
+  .konfirm__line { margin-inline: 0.25rem; min-width: 0.25rem; }
+  .konfirm__picked { white-space: normal; text-align: right; padding-inline: 0.55rem; }
+  .konfirm__meja-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .konfirm__item { gap: 0.55rem; }
+  .konfirm__thumb { width: 3.25rem; height: 3.25rem; }
+}
 </style>

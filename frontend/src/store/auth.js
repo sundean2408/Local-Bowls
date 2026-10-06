@@ -2,9 +2,19 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../services/api.js'
 
+function loadUser() {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    return user && typeof user === 'object' ? user : null
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   // State (dipulihkan dari localStorage supaya login bertahan saat refresh)
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+  const user = ref(loadUser())
   const token = ref(localStorage.getItem('authToken') || null)
 
   const isAuthenticated = computed(() => !!token.value)

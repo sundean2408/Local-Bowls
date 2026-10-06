@@ -10,11 +10,10 @@ class MejaSeeder extends Seeder
     public function run(): void
     {
         for ($i = 1; $i <= 8; $i++) {
-            Meja::create([
-                'nomor_meja' => (string) $i,
-                'qr_code' => 'table=' . $i,
-                'status_meja' => 'kosong',
-            ]);
+            Meja::firstOrCreate(
+                ['nomor_meja' => (string) $i],
+                ['qr_code' => 'table=' . $i, 'status_meja' => 'kosong'],
+            );
         }
     }
 }

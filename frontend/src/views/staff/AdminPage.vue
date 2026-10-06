@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api, { getImageUrl } from '@/services/api'
 import { useAuthStore } from '../../store/auth.js'
+import { formatAppDateTime, getAppWeekday } from '@/utils/dateTime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -64,12 +65,21 @@ function selectTab(id) {
   mobileSidebarOpen.value = false
 }
 
+function handleEscape() {
+  if (showUserModal.value) showUserModal.value = false
+  else if (showMenuModal.value) showMenuModal.value = false
+  else if (showKategoriModal.value) showKategoriModal.value = false
+  else if (showMejaModal.value) showMejaModal.value = false
+  else if (mobileSidebarOpen.value) mobileSidebarOpen.value = false
+  else adminMenuOpen.value = false
+}
+
 // ===== HELPERS =====
 const getGambarUrl = (gambar) => getImageUrl(gambar, '/logo.png')
 const fmt = (h) => new Intl.NumberFormat('id-ID').format(h || 0)
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return formatAppDateTime(dateStr)
 }
 
 const roleBadge = (role) => {
@@ -95,9 +105,9 @@ const HARI_LABEL = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 const weeklyChartData = computed(() => {
   const totals = [0, 0, 0, 0, 0, 0, 0]
   recentTransactions.value.forEach((trx) => {
-    const d = new Date(trx.tanggal_bayar)
-    if (isNaN(d.getTime())) return
-    const idx = HARI_URUTAN.indexOf(d.getDay())
+    const weekday = getAppWeekday(trx.tanggal_bayar)
+    if (weekday === null) return
+    const idx = HARI_URUTAN.indexOf(weekday)
     if (idx !== -1) totals[idx] += Number(trx.total_bayar || 0)
   })
   return HARI_LABEL.map((label, i) => ({ label, value: totals[i] }))
@@ -179,12 +189,12 @@ const saveMeja = async () => {
     if (editingMeja.value) { await api.put(`/meja/${editingMeja.value.id}`, mejaForm.value) }
     else { await api.post('/meja', mejaForm.value) }
     showMejaModal.value = false; await loadMeja()
-  } catch (e) { alert(e.response?.data?.message || 'Gagal menyimpan meja') }
+  } catch (e) { alert(e.response?.data?.message || e.message || 'Gagal menyimpan meja') }
 }
-const deleteMeja = async (id) => { if (!confirm('Yakin hapus meja ini?')) return; try { await api.delete(`/meja/${id}`); await loadMeja() } catch (e) { alert('Gagal menghapus meja') } }
+const deleteMeja = async (id) => { if (!confirm('Yakin hapus meja ini?')) return; try { await api.delete(`/meja/${id}`); await loadMeja() } catch (e) { alert(e.message || 'Gagal menghapus meja') } }
 const toggleStatusMeja = async (meja) => {
   const baru = meja.status_meja === 'kosong' ? 'terisi' : 'kosong'
-  try { await api.put(`/meja/${meja.id}`, { status_meja: baru }); await loadMeja() } catch (e) { alert('Gagal mengubah status meja') }
+  try { await api.put(`/meja/${meja.id}`, { status_meja: baru }); await loadMeja() } catch (e) { alert(e.message || 'Gagal mengubah status meja') }
 }
 
 // ===== USER CRUD =====
@@ -198,9 +208,9 @@ const saveUser = async () => {
     if (editingUser.value) { await api.put(`/users/${editingUser.value.id}`, userForm.value) }
     else { await api.post('/users', userForm.value) }
     showUserModal.value = false; await loadUsers()
-  } catch (e) { alert(e.response?.data?.message || 'Gagal menyimpan user') }
+  } catch (e) { alert(e.response?.data?.message || e.message || 'Gagal menyimpan user') }
 }
-const deleteUser = async (id) => { if (!confirm('Yakin hapus user ini?')) return; try { await api.delete(`/users/${id}`); await loadUsers() } catch (e) { alert('Gagal menghapus user') } }
+const deleteUser = async (id) => { if (!confirm('Yakin hapus user ini?')) return; try { await api.delete(`/users/${id}`); await loadUsers() } catch (e) { alert(e.message || 'Gagal menghapus user') } }
 
 // ===== MENU CRUD =====
 const openMenuModal = (menu = null) => {
@@ -218,9 +228,9 @@ const saveMenu = async () => {
     if (editingMenu.value) { fd.append('_method', 'PUT'); await api.post(`/menu/${editingMenu.value.id}`, fd) }
     else { await api.post('/menu', fd) }
     showMenuModal.value = false; await loadMenus()
-  } catch (e) { alert(e.response?.data?.message || 'Gagal menyimpan menu') }
+  } catch (e) { alert(e.response?.data?.message || e.message || 'Gagal menyimpan menu') }
 }
-const deleteMenu = async (id) => { if (!confirm('Yakin hapus menu ini?')) return; try { await api.delete(`/menu/${id}`); await loadMenus() } catch (e) { alert('Gagal menghapus menu') } }
+const deleteMenu = async (id) => { if (!confirm('Yakin hapus menu ini?')) return; try { await api.delete(`/menu/${id}`); await loadMenus() } catch (e) { alert(e.message || 'Gagal menghapus menu') } }
 
 // ===== KATEGORI CRUD =====
 const openKategoriModal = (kat = null) => {
@@ -233,9 +243,9 @@ const saveKategori = async () => {
     if (editingKategori.value) { await api.put(`/kategori/${editingKategori.value.id}`, kategoriForm.value) }
     else { await api.post('/kategori', kategoriForm.value) }
     showKategoriModal.value = false; await loadKategori()
-  } catch (e) { alert('Gagal menyimpan kategori') }
+  } catch (e) { alert(e.message || 'Gagal menyimpan kategori') }
 }
-const deleteKategori = async (id) => { if (!confirm('Yakin hapus kategori ini?')) return; try { await api.delete(`/kategori/${id}`); await loadKategori() } catch (e) { alert('Gagal menghapus kategori') } }
+const deleteKategori = async (id) => { if (!confirm('Yakin hapus kategori ini?')) return; try { await api.delete(`/kategori/${id}`); await loadKategori() } catch (e) { alert(e.message || 'Gagal menghapus kategori') } }
 
 // ===== LOGOUT =====
 const handleLogout = async () => { await authStore.logout(); router.push('/login') }
@@ -248,7 +258,7 @@ onMounted(() => loadAll())
 </script>
 
 <template>
-  <div class="adm" @click="adminMenuOpen = false">
+  <div class="adm" @click="adminMenuOpen = false" @keydown.esc="handleEscape">
     <!-- SIDEBAR desktop -->
     <aside class="adm__side hidden md:flex">
       <div class="adm__brand">
@@ -256,7 +266,7 @@ onMounted(() => loadAll())
         <span class="adm__brand-word">LocalBowls</span>
       </div>
       <nav class="adm__nav">
-        <button v-for="item in navItems" :key="item.id" @click="selectTab(item.id)" class="adm__nav-link" :class="{ 'is-active': activeTab === item.id }">
+        <button v-for="item in navItems" :key="item.id" type="button" @click="selectTab(item.id)" class="adm__nav-link" :class="{ 'is-active': activeTab === item.id }" :aria-current="activeTab === item.id ? 'page' : undefined">
           <svg v-if="item.icon === 'grid'" class="adm__nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.75" y="3.75" width="7" height="7" rx="1.5"/><rect x="13.25" y="3.75" width="7" height="7" rx="1.5"/><rect x="3.75" y="13.25" width="7" height="7" rx="1.5"/><rect x="13.25" y="13.25" width="7" height="7" rx="1.5"/></svg>
           <svg v-else-if="item.icon === 'users'" class="adm__nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="7.5" r="3.25"/><path d="M3.5 20a5.5 5.5 0 0111 0"/><circle cx="17" cy="8.5" r="2.5"/><path d="M15 20a4.5 4.5 0 015.5-4.4"/></svg>
           <svg v-else-if="item.icon === 'bowl'" class="adm__nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3.5 11h17a8.5 6 0 01-17 0z"/><path d="M6 11a6 6 0 0112 0"/><path d="M9 3.5c-.7.7-.7 1.3 0 2M12 3c-.7.7-.7 1.3 0 2"/></svg>
@@ -276,19 +286,19 @@ onMounted(() => loadAll())
 
     <!-- SIDEBAR mobile -->
     <div v-if="mobileSidebarOpen" class="md:hidden adm__drawer-overlay">
-      <div class="adm__drawer-bg" @click="mobileSidebarOpen = false"></div>
-      <aside class="adm__side adm__drawer">
+    <button type="button" class="adm__drawer-bg" aria-label="Tutup menu" @click="mobileSidebarOpen = false"></button>
+    <aside class="adm__side adm__drawer" aria-label="Navigasi admin">
         <div class="adm__brand">
           <img src="/logo.png" alt="" class="adm__brand-img" />
           <span class="adm__brand-word">LocalBowls</span>
-          <button @click="mobileSidebarOpen = false" class="adm__drawer-close">✕</button>
+        <button type="button" @click="mobileSidebarOpen = false" class="adm__drawer-close" aria-label="Tutup menu">✕</button>
         </div>
         <nav class="adm__nav">
-          <button v-for="item in navItems" :key="item.id" @click="selectTab(item.id)" class="adm__nav-link" :class="{ 'is-active': activeTab === item.id }">{{ item.label }}</button>
+        <button v-for="item in navItems" :key="item.id" type="button" @click="selectTab(item.id)" class="adm__nav-link" :class="{ 'is-active': activeTab === item.id }" :aria-current="activeTab === item.id ? 'page' : undefined">{{ item.label }}</button>
         </nav>
         <div class="adm__side-user">
           <p class="adm__side-name">{{ authStore.user?.nama || 'Admin' }}</p>
-          <button @click="handleLogout" class="adm__side-logout">Keluar</button>
+          <button type="button" @click="handleLogout" class="adm__side-logout">Keluar</button>
         </div>
       </aside>
     </div>
@@ -298,21 +308,21 @@ onMounted(() => loadAll())
       <!-- Topbar -->
       <header class="adm__topbar">
         <div class="adm__topbar-left">
-          <button @click.stop="mobileSidebarOpen = true" class="adm__burger md:hidden" aria-label="Menu">
+          <button type="button" @click.stop="mobileSidebarOpen = true" class="adm__burger md:hidden" aria-label="Buka menu" :aria-expanded="mobileSidebarOpen">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
           </button>
           <h1 class="adm__topbar-title">{{ pageTitle }}</h1>
         </div>
         <div class="adm__topbar-right">
-          <div class="adm__avatar-wrap" @click.stop="adminMenuOpen = !adminMenuOpen">
+          <button type="button" class="adm__avatar-wrap" @click.stop="adminMenuOpen = !adminMenuOpen" aria-haspopup="menu" :aria-expanded="adminMenuOpen" aria-label="Menu akun">
             <span class="adm__avatar">{{ adminInitials }}</span>
             <span class="adm__avatar-name hidden sm:inline">{{ authStore.user?.nama || 'Admin' }}</span>
-          </div>
-          <div v-if="adminMenuOpen" class="adm__dropdown" @click.stop>
+          </button>
+          <div v-if="adminMenuOpen" class="adm__dropdown" role="menu" @click.stop>
             <p class="adm__dropdown-name">{{ authStore.user?.nama || 'Admin' }}</p>
             <p class="adm__dropdown-role">Administrator</p>
             <hr />
-            <button @click="handleLogout" class="adm__dropdown-btn">Keluar</button>
+            <button type="button" role="menuitem" @click="handleLogout" class="adm__dropdown-btn">Keluar</button>
           </div>
         </div>
       </header>
@@ -351,7 +361,7 @@ onMounted(() => loadAll())
           <div class="adm__charts">
             <div class="lb-card adm__chart-card">
               <div class="adm__chart-head"><p class="adm__chart-title">Penjualan Mingguan</p><span class="adm__chart-hint">Berdasarkan transaksi termuat</span></div>
-              <svg :viewBox="`0 0 ${CHART_W} ${CHART_H}`" class="adm__line-chart">
+              <svg :viewBox="`0 0 ${CHART_W} ${CHART_H}`" class="adm__line-chart" role="img" aria-label="Grafik penjualan mingguan">
                 <defs><linearGradient id="aFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--lb-brand)" stop-opacity="0.3" /><stop offset="100%" stop-color="var(--lb-brand)" stop-opacity="0" /></linearGradient></defs>
                 <path :d="areaPath" fill="url(#aFill)" /><path :d="linePath" fill="none" stroke="var(--lb-brand)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
                 <circle v-for="(p, i) in chartPoints" :key="i" :cx="p.x" :cy="p.y" r="4.5" fill="var(--lb-brand)" stroke="#fff" stroke-width="2.5" />
@@ -362,7 +372,7 @@ onMounted(() => loadAll())
               <p class="adm__chart-title">Kategori Menu</p>
               <div v-if="kategoriBreakdown.length === 0" class="adm__chart-empty">Belum ada data kategori.</div>
               <div v-else class="adm__donut-wrap">
-                <div class="adm__donut" :style="{ background: donutBackground }"><div class="adm__donut-hole"><strong>{{ menuList.length }}</strong><span>Menu</span></div></div>
+                <div class="adm__donut" role="img" :aria-label="`Komposisi ${kategoriBreakdown.length} kategori dari ${menuList.length} menu`" :style="{ background: donutBackground }"><div class="adm__donut-hole"><strong>{{ menuList.length }}</strong><span>Menu</span></div></div>
                 <div class="adm__donut-legend">
                   <div v-for="k in kategoriBreakdown" :key="k.id" class="adm__donut-item">
                     <span class="adm__donut-dot" :style="{ background: k.color }"></span>
@@ -554,8 +564,8 @@ onMounted(() => loadAll())
 
     <!-- ===== MODAL: USER ===== -->
     <div v-if="showUserModal" class="adm__overlay" @click.self="showUserModal = false">
-      <div class="lb-card adm__modal">
-        <h3>{{ editingUser ? 'Edit User' : 'Tambah User' }}</h3>
+      <div class="lb-card adm__modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+        <h3 id="user-modal-title">{{ editingUser ? 'Edit User' : 'Tambah User' }}</h3>
         <form @submit.prevent="saveUser" class="adm__form">
           <label>Nama <input v-model="userForm.nama" class="lb-input" required /></label>
           <label>Username <input v-model="userForm.username" class="lb-input" required /></label>
@@ -572,8 +582,8 @@ onMounted(() => loadAll())
 
     <!-- ===== MODAL: MENU ===== -->
     <div v-if="showMenuModal" class="adm__overlay" @click.self="showMenuModal = false">
-      <div class="lb-card adm__modal adm__modal--scroll">
-        <h3>{{ editingMenu ? 'Edit Menu' : 'Tambah Menu' }}</h3>
+      <div class="lb-card adm__modal adm__modal--scroll" role="dialog" aria-modal="true" aria-labelledby="menu-modal-title">
+        <h3 id="menu-modal-title">{{ editingMenu ? 'Edit Menu' : 'Tambah Menu' }}</h3>
         <form @submit.prevent="saveMenu" class="adm__form">
           <label>Nama Menu <input v-model="menuForm.nama_menu" class="lb-input" required /></label>
           <label>Kategori
@@ -592,8 +602,8 @@ onMounted(() => loadAll())
 
     <!-- ===== MODAL: KATEGORI ===== -->
     <div v-if="showKategoriModal" class="adm__overlay" @click.self="showKategoriModal = false">
-      <div class="lb-card adm__modal">
-        <h3>{{ editingKategori ? 'Edit Kategori' : 'Tambah Kategori' }}</h3>
+      <div class="lb-card adm__modal" role="dialog" aria-modal="true" aria-labelledby="kategori-modal-title">
+        <h3 id="kategori-modal-title">{{ editingKategori ? 'Edit Kategori' : 'Tambah Kategori' }}</h3>
         <form @submit.prevent="saveKategori" class="adm__form">
           <label>Nama Kategori <input v-model="kategoriForm.nama_kategori" class="lb-input" required /></label>
           <div class="adm__modal-foot"><button type="button" @click="showKategoriModal = false" class="lb-btn-ghost">Batal</button><button type="submit" class="lb-btn-primary">Simpan</button></div>
@@ -603,8 +613,8 @@ onMounted(() => loadAll())
 
     <!-- ===== MODAL: MEJA ===== -->
     <div v-if="showMejaModal" class="adm__overlay" @click.self="showMejaModal = false">
-      <div class="lb-card adm__modal">
-        <h3>{{ editingMeja ? 'Edit Meja' : 'Tambah Meja' }}</h3>
+      <div class="lb-card adm__modal" role="dialog" aria-modal="true" aria-labelledby="meja-modal-title">
+        <h3 id="meja-modal-title">{{ editingMeja ? 'Edit Meja' : 'Tambah Meja' }}</h3>
         <form @submit.prevent="saveMeja" class="adm__form">
           <label>Nomor Meja <input v-model="mejaForm.nomor_meja" class="lb-input" required placeholder="Contoh: 1, 2, A1" /></label>
           <div class="adm__modal-foot"><button type="button" @click="showMejaModal = false" class="lb-btn-ghost">Batal</button><button type="submit" class="lb-btn-primary">Simpan</button></div>
@@ -616,14 +626,15 @@ onMounted(() => loadAll())
 
 <style scoped>
 /* ===== LAYOUT ===== */
-.adm { display: flex; min-height: 100vh; background: var(--lb-bg); color: var(--lb-ink); font-family: 'Plus Jakarta Sans', sans-serif; }
+.adm { display: flex; min-height: 100vh; min-height: 100dvh; background: var(--lb-bg); color: var(--lb-ink); font-family: 'Plus Jakarta Sans', sans-serif; }
 
 /* SIDEBAR */
 .adm__side { width: 16rem; flex-shrink: 0; flex-direction: column; background: linear-gradient(180deg, var(--lb-sidebar-dark) 0%, var(--lb-sidebar-mid) 60%, var(--lb-sidebar-light) 100%); color: var(--lb-sidebar-text); }
+.adm > .adm__side { position: sticky; top: 0; height: 100vh; height: 100dvh; }
 .adm__brand { height: 4rem; display: flex; align-items: center; gap: 0.6rem; padding-inline: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .adm__brand-img { width: 2.25rem; height: 2.25rem; border-radius: 50%; object-fit: cover; background: #fff; border: 1px solid rgba(255,255,255,0.25); flex-shrink: 0; }
 .adm__brand-word { font-family: 'Fraunces', Georgia, serif; font-size: 1.05rem; font-weight: 800; color: #fff; }
-.adm__nav { flex: 1; padding: 0.9rem 0.75rem; display: grid; gap: 0.2rem; align-content: start; }
+.adm__nav { flex: 1; padding: 0.9rem 0.75rem; display: grid; gap: 0.2rem; align-content: start; overflow-y: auto; }
 .adm__nav-link { display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.8rem; border-radius: 12px; border: none; background: none; font-size: 0.88rem; font-weight: 600; color: rgba(255,217,163,0.7); cursor: pointer; text-align: left; width: 100%; }
 .adm__nav-link:hover { background: rgba(255,255,255,0.07); color: #fff; }
 .adm__nav-link.is-active { background: var(--lb-brand); color: #fff; }
@@ -636,18 +647,19 @@ onMounted(() => loadAll())
 
 /* MOBILE DRAWER */
 .adm__drawer-overlay { position: fixed; inset: 0; z-index: 50; display: flex; }
-.adm__drawer-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
-.adm__drawer { position: relative; display: flex !important; flex-direction: column; }
+.adm__drawer-bg { position: absolute; inset: 0; width: 100%; border: 0; background: rgba(0,0,0,0.5); cursor: pointer; }
+.adm__drawer { position: relative; display: flex !important; flex-direction: column; max-width: min(19rem, 88vw); height: 100%; overflow-y: auto; box-shadow: 12px 0 40px rgba(30, 25, 20, 0.2); }
 .adm__drawer-close { margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.7); font-size: 1rem; cursor: pointer; }
 
 /* TOPBAR */
-.adm__topbar { height: 4rem; flex-shrink: 0; position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-inline: 1.25rem; background: #fff; border-bottom: 1px solid var(--lb-line); }
+.adm__topbar { height: 4rem; flex-shrink: 0; position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-inline: 1.25rem; background: rgba(255,255,255,0.94); border-bottom: 1px solid var(--lb-line); backdrop-filter: blur(12px); }
 .adm__topbar-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
 .adm__burger { width: 2.25rem; height: 2.25rem; border-radius: 10px; border: 1px solid var(--lb-line); background: #fff; cursor: pointer; display: grid; place-items: center; }
 .adm__burger svg { width: 1.1rem; height: 1.1rem; }
 .adm__topbar-title { margin: 0; font-size: 1.05rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .adm__topbar-right { display: flex; align-items: center; gap: 0.5rem; position: relative; }
-.adm__avatar-wrap { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+.adm__avatar-wrap { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; border: 0; padding: 0.25rem; border-radius: 999px; background: transparent; color: inherit; font: inherit; }
+.adm__avatar-wrap:hover { background: var(--lb-soft); }
 .adm__avatar { width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--lb-ink); color: #fff; display: grid; place-items: center; font-size: 0.8rem; font-weight: 800; flex-shrink: 0; }
 .adm__avatar-name { font-size: 0.85rem; font-weight: 600; }
 .adm__dropdown { position: absolute; right: 0; top: 3rem; width: 12rem; background: #fff; border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.12); border: 1px solid var(--lb-line); padding: 0.75rem; z-index: 50; }
@@ -659,13 +671,13 @@ onMounted(() => loadAll())
 
 /* MAIN */
 .adm__main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.adm__content { flex: 1; overflow-y: auto; padding: 1.25rem; }
+.adm__content { flex: 1; min-width: 0; padding: 1.5rem clamp(1rem, 2.5vw, 2rem); }
 .adm__loading { text-align: center; padding: 4rem 1rem; color: var(--lb-muted); display: grid; gap: 0.75rem; justify-items: center; }
 .adm__loading p { margin: 0; }
 @media (min-width: 640px) { .adm__content { padding: 1.5rem; } }
 
 /* WELCOME */
-.adm__welcome { background: linear-gradient(135deg, #FBEAD9 0%, var(--lb-bg) 100%); border-radius: 20px; padding: 1.5rem 1.75rem; margin-bottom: 1.25rem; }
+.adm__welcome { background: radial-gradient(circle at 90% 10%, rgba(255,255,255,0.72), transparent 35%), linear-gradient(135deg, #FBEAD9 0%, var(--lb-bg) 100%); border: 1px solid rgba(217,119,87,0.1); border-radius: 20px; padding: 1.5rem 1.75rem; margin-bottom: 1.25rem; }
 .adm__welcome-eyebrow { margin: 0; font-size: 0.82rem; color: var(--lb-muted); }
 .adm__welcome-title { margin: 0.15rem 0 0.25rem; font-family: 'Fraunces', Georgia, serif; font-size: clamp(1.4rem, 4vw, 1.8rem); font-weight: 800; }
 .adm__welcome-sub { margin: 0; font-size: 0.85rem; color: var(--lb-muted); }
@@ -673,7 +685,7 @@ onMounted(() => loadAll())
 /* STAT CARDS */
 .adm__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem; }
 .adm__stats--3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-.adm__stat { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1.15rem 1.25rem; background: #fff; border-radius: 16px; border: 1px solid var(--lb-line); border-left: 4px solid var(--stat-accent, var(--lb-brand)); }
+.adm__stat { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-width: 0; padding: 1.15rem 1.25rem; background: #fff; border-radius: 16px; border: 1px solid var(--lb-line); border-left: 4px solid var(--stat-accent, var(--lb-brand)); box-shadow: 0 4px 16px rgba(51, 42, 31, 0.035); }
 .adm__stat-label { margin: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--lb-muted); }
 .adm__stat-num { margin: 0.2rem 0 0; font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; font-weight: 700; }
 .adm__stat-icon { width: 2.75rem; height: 2.75rem; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0; }
@@ -682,12 +694,12 @@ onMounted(() => loadAll())
 /* CHARTS */
 .adm__charts { display: grid; grid-template-columns: 1fr; gap: 0.85rem; margin-bottom: 1.25rem; }
 @media (min-width: 1024px) { .adm__charts { grid-template-columns: 1.2fr 0.8fr; } }
-.adm__chart-card { padding: 1.25rem; }
+.adm__chart-card { min-width: 0; padding: 1.25rem; }
 .adm__chart-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; gap: 0.5rem; }
 .adm__chart-title { margin: 0; font-size: 0.95rem; font-weight: 800; }
 .adm__chart-hint { font-size: 0.72rem; color: var(--lb-faint); }
 .adm__chart-empty { font-size: 0.85rem; color: var(--lb-muted); padding: 1rem 0; }
-.adm__line-chart { width: 100%; height: 12rem; }
+.adm__line-chart { width: 100%; height: 12rem; overflow: visible; }
 .adm__chart-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--lb-faint); padding-inline: 0.25rem; margin-top: 0.25rem; }
 
 /* DONUT */
@@ -717,11 +729,12 @@ onMounted(() => loadAll())
 .adm__section-head h2 { margin: 0; font-size: 1.15rem; font-weight: 800; }
 .adm__section-title { margin: 0 0 1rem; font-size: 1.15rem; font-weight: 800; }
 .adm__sub-title { margin: 1.5rem 0 0.75rem; font-size: 1rem; font-weight: 800; }
-.adm__table-wrap { overflow-x: auto; }
+.adm__table-wrap { overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
 .adm__table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.adm__table th { text-align: left; padding: 0.75rem 1rem; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--lb-muted); background: var(--lb-soft); border-bottom: 1px solid var(--lb-line); }
+.adm__table th { position: sticky; top: 0; text-align: left; padding: 0.75rem 1rem; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--lb-muted); background: var(--lb-soft); border-bottom: 1px solid var(--lb-line); white-space: nowrap; }
 .adm__table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--lb-line); vertical-align: middle; }
 .adm__table tr:last-child td { border-bottom: none; }
+.adm__table tbody tr:not(:last-child):hover { background: rgba(248, 244, 238, 0.62); }
 .adm__table td.is-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .adm__table--compact td { padding: 0.55rem 0.75rem; }
 .adm__td-img img { width: 2.5rem; height: 2.5rem; border-radius: 10px; object-fit: cover; display: block; }
@@ -731,12 +744,12 @@ onMounted(() => loadAll())
 .adm__act-del { background: none; border: none; font-size: 0.82rem; font-weight: 600; color: #C62828; cursor: pointer; padding: 0; }
 
 /* MENU GRID */
-.adm__menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.85rem; }
+.adm__menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 0.85rem; }
 .adm__menu-card { overflow: hidden; display: flex; flex-direction: column; }
 .adm__menu-img { width: 100%; height: 9rem; object-fit: cover; }
 .adm__menu-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.35rem; }
 .adm__menu-body h3 { margin: 0; font-size: 0.95rem; font-weight: 800; }
-.adm__menu-desc { margin: 0; font-size: 0.8rem; color: var(--lb-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.adm__menu-desc { margin: 0; font-size: 0.8rem; color: var(--lb-muted); display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .adm__menu-meta { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 0.5rem; }
 .adm__menu-meta strong { color: var(--lb-brand-dark); }
 .adm__menu-actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
@@ -751,7 +764,7 @@ onMounted(() => loadAll())
 
 /* MODAL */
 .adm__overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1rem; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
-.adm__modal { width: 100%; max-width: 26rem; padding: 1.5rem; max-height: 90vh; overflow-y: auto; }
+.adm__modal { width: 100%; max-width: 26rem; padding: 1.5rem; max-height: min(90vh, 48rem); max-height: min(90dvh, 48rem); overflow-y: auto; overscroll-behavior: contain; }
 .adm__modal--scroll { max-height: 90vh; overflow-y: auto; }
 .adm__modal h3 { margin: 0 0 1.25rem; font-size: 1.1rem; font-weight: 800; }
 .adm__form { display: grid; gap: 0.85rem; }
@@ -761,4 +774,43 @@ onMounted(() => loadAll())
 .adm__preview { width: 5rem; height: 5rem; border-radius: 12px; object-fit: cover; margin-top: 0.35rem; border: 1px solid var(--lb-line); }
 .adm__modal-foot { display: flex; gap: 0.6rem; padding-top: 0.5rem; }
 .adm__modal-foot button { flex: 1; }
+
+.adm :is(button, input, select, textarea):focus-visible { outline: 3px solid rgba(217,119,87,0.55); outline-offset: 3px; }
+.adm__nav-link, .adm__quick-btn, .adm__act-edit, .adm__act-del, .adm__see-all, .adm__burger, .adm__side-logout, .adm__dropdown-btn, .adm__menu-actions button { transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease; }
+.adm__act-edit, .adm__act-del, .adm__side-logout, .adm__dropdown-btn, .adm__drawer-close, .adm__see-all { min-height: 2.5rem; }
+.adm__section-head { gap: 0.75rem; }
+.adm__section-head > .lb-btn-primary { flex-shrink: 0; }
+.adm__menu-card { min-width: 0; transition: transform 180ms ease, box-shadow 180ms ease; }
+.adm__menu-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(51,42,31,0.09); }
+.adm__menu-body h3, .adm__menu-desc { overflow-wrap: anywhere; }
+.adm__form input[type="file"] { max-width: 100%; font: inherit; }
+
+@media (max-width: 639px) {
+  .adm__content { padding: 1rem; }
+  .adm__topbar { padding-inline: 0.85rem; }
+  .adm__welcome { padding: 1.25rem; }
+  .adm__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+  .adm__stat { padding: 0.9rem; gap: 0.4rem; }
+  .adm__stat-label { font-size: 0.64rem; }
+  .adm__stat-num { font-size: 1.25rem; overflow-wrap: anywhere; }
+  .adm__stat-icon { width: 2.25rem; height: 2.25rem; }
+  .adm__donut-wrap { gap: 1rem; }
+  .adm__donut { width: 6.5rem; height: 6.5rem; }
+  .adm__section-head { align-items: flex-start; }
+  .adm__section-head h2 { font-size: 1rem; }
+  .adm__section-head > .lb-btn-primary { padding-inline: 0.75rem; white-space: nowrap; }
+  .adm__chart-card, .adm__recent, .adm__quick { padding: 1rem; }
+}
+
+@media (max-width: 380px) {
+  .adm__avatar-name { display: none; }
+  .adm__stat-icon { display: none; }
+  .adm__donut-wrap { align-items: flex-start; flex-direction: column; }
+  .adm__quick-grid { grid-template-columns: 1fr; }
+  .adm__section-head { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm *, .adm *::before, .adm *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
 </style>

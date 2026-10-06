@@ -45,7 +45,7 @@ class MenuController extends Controller
             'nama_menu' => 'sometimes|string|max:255',
             'deskripsi' => 'nullable|string',
             'harga' => 'sometimes|numeric|min:0',
-            'status_tersedia' => 'nullable|boolean',
+            'status_tersedia' => 'sometimes|boolean',
             'gambar' => 'nullable|image|max:2048',
         ]);
 

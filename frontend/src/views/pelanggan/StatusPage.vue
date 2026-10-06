@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api, { getImageUrl } from '../../services/api'
+import { formatAppTime } from '@/utils/dateTime'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,10 +29,7 @@ function stageIndex(status) {
 }
 
 function formatJam(dateStr) {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return '-'
-  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  return formatAppTime(dateStr)
 }
 
 function waktuStage(pesanan, stageKeyIndex) {
@@ -94,7 +92,7 @@ onUnmounted(() => {
     <!-- Header -->
     <div class="stat-header">
       <div class="stat-header__inner">
-        <button @click="kembali" class="stat-back" aria-label="Kembali">
+        <button type="button" @click="kembali" class="stat-back" aria-label="Kembali">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
         <div>
@@ -106,26 +104,26 @@ onUnmounted(() => {
 
     <div class="stat-body">
       <!-- Loading -->
-      <div v-if="loading" class="stat-loading">
+      <div v-if="loading" class="stat-loading" role="status" aria-live="polite">
         <div class="lb-spinner"></div>
         <p>Memuat status pesanan...</p>
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="lb-alert lb-alert--error stat-center">
+      <div v-else-if="error" role="alert" class="lb-alert lb-alert--error stat-center">
         <p>{{ error }}</p>
-        <button @click="loading = true; fetchStatus()" class="lb-btn-primary">Coba Lagi</button>
+        <button type="button" @click="loading = true; fetchStatus()" class="lb-btn-primary">Coba Lagi</button>
       </div>
 
       <!-- Empty -->
-      <div v-else-if="pesananList.length === 0" class="lb-empty">
+      <div v-else-if="pesananList.length === 0" class="lb-empty" role="status">
         <p class="stat-empty-title">Belum ada pesanan aktif</p>
         <router-link to="/menu" class="lb-btn-primary">Pesan Sekarang</router-link>
       </div>
 
       <!-- Orders -->
       <div v-else class="stat-orders">
-        <div v-for="pesanan in pesananList" :key="pesanan.id" class="stat-order">
+        <article v-for="pesanan in pesananList" :key="pesanan.id" class="stat-order">
 
           <!-- Info card -->
           <div class="stat-info">
@@ -144,10 +142,10 @@ onUnmounted(() => {
           </div>
 
           <!-- Stepper -->
-          <div class="stat-stepper">
+          <div class="stat-stepper" role="group" :aria-label="`Tahapan pesanan ${pesanan.id_pesanan ?? pesanan.id}`">
             <template v-for="(stage, i) in STAGES" :key="stage.key">
-              <div class="stat-step">
-                <div class="stat-step__circle" :class="{ 'is-done': i < stageIndex(pesanan.status_pesanan), 'is-active': i === stageIndex(pesanan.status_pesanan) }">
+              <div class="stat-step" :aria-current="i === stageIndex(pesanan.status_pesanan) ? 'step' : undefined">
+                <div aria-hidden="true" class="stat-step__circle" :class="{ 'is-done': i < stageIndex(pesanan.status_pesanan), 'is-active': i === stageIndex(pesanan.status_pesanan) }">
                   {{ stage.icon }}
                 </div>
                 <p class="stat-step__label">{{ stage.label }}</p>
@@ -183,7 +181,7 @@ onUnmounted(() => {
             </div>
           </div>
 
-        </div>
+        </article>
       </div>
     </div>
   </div>
@@ -192,14 +190,14 @@ onUnmounted(() => {
 <style scoped>
 .stat-page { min-height: 100vh; background: var(--lb-bg); color: var(--lb-ink); }
 
-.stat-header { position: sticky; top: 0; z-index: 20; background: var(--lb-bg); border-bottom: 1px solid var(--lb-line); padding: 1rem 1.5rem; }
+.stat-header { position: sticky; top: 0; z-index: 20; background: var(--lb-bg); border-bottom: 1px solid var(--lb-line); padding: 0.75rem clamp(0.75rem, 4vw, 1.5rem); }
 .stat-header__inner { display: flex; align-items: center; gap: 1rem; max-width: 56rem; margin: 0 auto; }
-.stat-back { width: 2.5rem; height: 2.5rem; border-radius: 50%; border: none; background: rgba(217,119,87,0.1); cursor: pointer; display: grid; place-items: center; flex-shrink: 0; }
+.stat-back { width: 2.75rem; height: 2.75rem; border-radius: 50%; border: none; background: rgba(217,119,87,0.1); cursor: pointer; display: grid; place-items: center; flex-shrink: 0; }
 .stat-back svg { width: 1.25rem; height: 1.25rem; color: var(--lb-ink); }
 .stat-header__title { margin: 0; font-size: 1.3rem; font-weight: 800; }
 .stat-header__sub { margin: 0; font-size: 0.82rem; color: var(--lb-muted); }
 
-.stat-body { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1.5rem 6rem; }
+.stat-body { max-width: 56rem; margin: 0 auto; padding: clamp(1rem, 4vw, 1.5rem) clamp(0.75rem, 4vw, 1.5rem) 6rem; }
 .stat-loading { text-align: center; padding: 4rem 0; color: var(--lb-muted); }
 .stat-loading p { margin: 0; }
 .stat-center { text-align: center; display: grid; gap: 1rem; }
@@ -209,7 +207,7 @@ onUnmounted(() => {
 .stat-order { display: grid; gap: 1rem; }
 
 /* Info card */
-.stat-info { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; background: var(--lb-soft); border-radius: 18px; padding: 1.25rem; }
+.stat-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 1rem; background: var(--lb-soft); border-radius: 18px; padding: 1.25rem; }
 @media (max-width: 430px) { .stat-info { grid-template-columns: 1fr; } }
 .stat-info__item { display: flex; align-items: center; gap: 0.75rem; }
 .stat-info__icon { width: 3rem; height: 3rem; border-radius: 50%; background: rgba(217,119,87,0.15); display: grid; place-items: center; flex-shrink: 0; }
@@ -237,7 +235,7 @@ onUnmounted(() => {
 .stat-item__img { width: 5rem; height: 5rem; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: var(--lb-soft); }
 .stat-item__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .stat-item__info { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
-.stat-item__info h3 { margin: 0; font-size: 0.95rem; font-weight: 800; }
+.stat-item__info h3 { margin: 0; font-size: 0.95rem; font-weight: 800; overflow-wrap: anywhere; }
 .stat-item__price { margin: 0; font-size: 0.85rem; color: var(--lb-brand); font-weight: 700; }
 .stat-item__note { margin: 0; font-size: 0.78rem; color: var(--lb-muted); font-style: italic; }
 .stat-item__qty { display: flex; align-items: center; gap: 0.5rem; margin-top: auto; }
@@ -246,4 +244,15 @@ onUnmounted(() => {
 .stat-total { display: flex; align-items: baseline; justify-content: space-between; margin-top: 1rem; padding-top: 0.85rem; border-top: 2px dashed var(--lb-line); }
 .stat-total span { font-weight: 700; color: var(--lb-muted); }
 .stat-total strong { font-family: 'Fraunces', Georgia, serif; font-size: 1.4rem; color: var(--lb-brand); }
+.stat-page :is(a, button):focus-visible { outline: 3px solid var(--lb-brand); outline-offset: 3px; }
+@media (max-width: 380px) {
+  .stat-step { min-width: 4.5rem; }
+  .stat-step__circle { width: 2.5rem; height: 2.5rem; }
+  .stat-step__label, .stat-step__time { font-size: 0.65rem; }
+  .stat-items { padding: 0.9rem; }
+  .stat-item { gap: 0.65rem; }
+  .stat-item__img { width: 3.75rem; height: 3.75rem; }
+  .stat-total { gap: 0.5rem; }
+  .stat-total strong { font-size: 1.1rem; text-align: right; }
+}
 </style>

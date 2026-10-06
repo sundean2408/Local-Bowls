@@ -6,6 +6,8 @@ use App\Models\Pembayaran;
 use App\Models\Pesanan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PembayaranController extends Controller
 {
@@ -19,20 +21,46 @@ class PembayaranController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'id_pesanan' => 'required|exists:pesanan,id',
+            'id_pesanan' => [
+                'required',
+                'exists:pesanan,id',
+                Rule::unique('pembayaran', 'id_pesanan'),
+            ],
             'metode_pembayaran' => 'required|in:qris,tunai',
-            'total_bayar' => 'required|numeric|min:0',
+            'total_bayar' => 'required|numeric|min:0|decimal:0,2',
             'nomor_struk_digital' => 'required|string|unique:pembayaran,nomor_struk_digital',
         ]);
 
         return DB::transaction(function () use ($data, $request) {
+            $pesanan = Pesanan::whereKey($data['id_pesanan'])
+                ->lockForUpdate()
+                ->first();
+
+            if (!$pesanan) {
+                throw ValidationException::withMessages([
+                    'id_pesanan' => ['Pesanan tidak ditemukan.'],
+                ]);
+            }
+
+            if (Pembayaran::where('id_pesanan', $pesanan->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'id_pesanan' => ['Pesanan sudah dibayar.'],
+                ]);
+            }
+
+            if (number_format((float) $data['total_bayar'], 2, '.', '') !== number_format((float) $pesanan->total_harga, 2, '.', '')) {
+                throw ValidationException::withMessages([
+                    'total_bayar' => ['Total pembayaran harus sama dengan total pesanan.'],
+                ]);
+            }
+
             $pembayaran = Pembayaran::create([
                 ...$data,
                 'id_kasir' => $request->user()->id,
                 'tanggal_bayar' => now(),
             ]);
 
-            $pesanan = Pesanan::with('meja')->find($data['id_pesanan']);
+            $pesanan->load('meja');
             $pesanan->update(['status_pesanan' => 'selesai']);
             $pesanan->meja?->update(['status_meja' => 'kosong']);
 

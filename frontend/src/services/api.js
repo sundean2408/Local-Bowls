@@ -8,13 +8,17 @@ class ApiService {
   }
 
   // Helper method untuk add authorization header
-  getHeaders() {
+  getHeaders(isMultipart = false) {
     const token = localStorage.getItem('authToken')
     return {
-      'Content-Type': 'application/json',
+      ...(!isMultipart && { 'Content-Type': 'application/json' }),
       'Accept': 'application/json', // penting: kalau tidak ada, Laravel bisa redirect (bukan 401 JSON) saat auth gagal
       ...(token && { 'Authorization': `Bearer ${token}` })
     }
+  }
+
+  getBody(data) {
+    return data instanceof FormData ? data : JSON.stringify(data)
   }
 
   // Helper method untuk image URL. Foto menu tersimpan di
@@ -49,8 +53,8 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(data)
+        headers: this.getHeaders(data instanceof FormData),
+        body: this.getBody(data)
       })
       return await this.handleResponse(response)
     } catch (error) {
@@ -63,8 +67,8 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'PUT',
-        headers: this.getHeaders(),
-        body: JSON.stringify(data)
+        headers: this.getHeaders(data instanceof FormData),
+        body: this.getBody(data)
       })
       return await this.handleResponse(response)
     } catch (error) {
@@ -77,8 +81,8 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'PATCH',
-        headers: this.getHeaders(),
-        body: JSON.stringify(data)
+        headers: this.getHeaders(data instanceof FormData),
+        body: this.getBody(data)
       })
       return await this.handleResponse(response)
     } catch (error) {

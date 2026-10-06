@@ -72,6 +72,12 @@ return [
 
     'timezone' => 'UTC',
 
+    'bootstrap_admin' => [
+        'name' => env('ADMIN_NAME', 'Admin Utama'),
+        'username' => env('ADMIN_USERNAME'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

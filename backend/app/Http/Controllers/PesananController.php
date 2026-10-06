@@ -7,6 +7,7 @@ use App\Models\DetailPesanan;
 use App\Models\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PesananController extends Controller
 {
@@ -63,7 +64,17 @@ class PesananController extends Controller
 
         return DB::transaction(function () use ($data) {
             $total = 0;
-            $menus = Menu::whereIn('id', collect($data['items'])->pluck('id_menu'))->get()->keyBy('id');
+            $menuIds = collect($data['items'])->pluck('id_menu')->unique();
+            $menus = Menu::whereIn('id', $menuIds)
+                ->where('status_tersedia', true)
+                ->get()
+                ->keyBy('id');
+
+            if ($menus->count() !== $menuIds->count()) {
+                throw ValidationException::withMessages([
+                    'items' => ['Satu atau lebih menu tidak tersedia.'],
+                ]);
+            }
 
             $pesanan = Pesanan::create([
                 'id_meja' => $data['id_meja'],
