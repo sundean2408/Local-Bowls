@@ -825,6 +825,15 @@ onMounted(() => loadAll())
   .adm__section-head h2 { font-size: 1rem; }
   .adm__section-head > .lb-btn-primary { padding-inline: 0.75rem; white-space: nowrap; }
   .adm__chart-card, .adm__recent, .adm__quick { padding: 1rem; }
+  .adm__menu-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+  .adm__menu-img { height: auto; aspect-ratio: 1 / 1; }
+  .adm__menu-body { padding: 0.55rem; gap: 0.3rem; }
+  .adm__menu-body h3 { font-size: 0.75rem; }
+  .adm__menu-desc { font-size: 0.64rem; line-height: 1.35; }
+  .adm__menu-meta { align-items: flex-start; flex-direction: column; gap: 0.25rem; }
+  .adm__menu-meta strong { font-size: 0.7rem; }
+  .adm__menu-actions { gap: 0.25rem; }
+  .adm__menu-actions button { padding: 0.35rem 0.15rem; font-size: 0.62rem; }
 }
 
 @media (max-width: 380px) {

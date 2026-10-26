@@ -14,21 +14,11 @@ const heroSlides = [
 const getFallbackImg = () => '/logo.png'
 
 const activeIndex = ref(0)
-const carouselPaused = ref(false)
 let intervalId = null
 
 function goToSlide(i) { activeIndex.value = i }
 function prevSlide() { activeIndex.value = (activeIndex.value - 1 + heroSlides.length) % heroSlides.length }
 function nextSlide() { activeIndex.value = (activeIndex.value + 1) % heroSlides.length }
-function toggleCarousel() {
-  carouselPaused.value = !carouselPaused.value
-  if (carouselPaused.value && intervalId) {
-    clearInterval(intervalId)
-    intervalId = null
-  } else if (!carouselPaused.value) {
-    intervalId = setInterval(nextSlide, 4500)
-  }
-}
 
 // --- Menu Favorit (Top Mie Terlaris) ---
 const menuFavorit = ref([])
@@ -84,8 +74,6 @@ const paragraf = [
 onMounted(() => {
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     intervalId = setInterval(nextSlide, 4500)
-  } else {
-    carouselPaused.value = true
   }
   fetchMenuFavorit()
   window.addEventListener('scroll', onScroll, { passive: true })
@@ -145,9 +133,6 @@ onUnmounted(() => {
       <!-- Panah navigasi -->
       <button type="button" class="hero__arrow hero__arrow--prev" @click="prevSlide" aria-label="Slide sebelumnya">‹</button>
       <button type="button" class="hero__arrow hero__arrow--next" @click="nextSlide" aria-label="Slide berikutnya">›</button>
-      <button type="button" class="hero__pause" @click="toggleCarousel" :aria-label="carouselPaused ? 'Putar otomatis slide' : 'Jeda slide otomatis'">
-        {{ carouselPaused ? 'Putar' : 'Jeda' }}
-      </button>
 
       <!-- Dots -->
       <div class="hero__dots">
@@ -301,11 +286,12 @@ onUnmounted(() => {
 /* ===== HERO (full-bleed) ===== */
 .hero {
   position: relative;
-  min-height: 86vh;
+  min-height: calc(100vh - 4.25rem);
+  min-height: calc(100svh - 4.25rem);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: center;
   overflow: hidden;
   color: #fff;
 }
@@ -324,33 +310,34 @@ onUnmounted(() => {
 .hero__inner {
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
   width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 0 1.25rem 4.5rem;
+  max-width: none;
+  margin: auto;
+  padding: 0 clamp(1rem, 3.5vw, 2.5rem) 1.5rem;
 }
 
 .hero__eyebrow {
-  display: inline-block; font-size: 0.8rem; font-weight: 600; color: #fff;
+  display: inline-block; font-size: clamp(0.72rem, 0.9vw, 0.8rem); font-weight: 600; color: #fff;
   background: rgba(217, 119, 87, 0.85); padding: 0.3rem 0.8rem; border-radius: 999px; margin-bottom: 1rem;
 }
 .hero__title {
-  font-family: 'Fraunces', serif; font-size: clamp(2rem, 7vw, 3.4rem); font-weight: 600; line-height: 1.1;
-  margin: 0 0 1rem; max-width: 16ch; text-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  font-family: 'Fraunces', serif; font-size: clamp(2rem, 5vw, 4rem); font-weight: 600; line-height: 1.1;
+  margin: 0 0 1rem; max-width: min(18ch, 100%); text-shadow: 0 4px 24px rgba(0,0,0,0.35);
 }
-.hero__desc { color: rgba(255,255,255,0.88); font-size: 1rem; line-height: 1.6; max-width: 42ch; margin: 0 0 1.5rem; }
+.hero__desc { color: rgba(255,255,255,0.88); font-size: clamp(0.9rem, 1.15vw, 1rem); line-height: 1.6; max-width: 42ch; margin: 0 0 1.5rem; }
 
 .hero__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .btn-cta {
-  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 600; text-decoration: none;
-  color: #fff; background: var(--lb-accent); border: none; padding: 0.9rem 1.8rem; border-radius: 14px; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(0.9rem, 1.1vw, 1rem); font-weight: 600; text-decoration: none;
+  color: #fff; background: var(--lb-accent); border: none; padding: 0.9rem clamp(1.2rem, 2vw, 1.8rem); border-radius: 14px; cursor: pointer;
   box-shadow: 0 8px 20px rgba(217, 119, 87, 0.45); transition: transform 0.15s ease, box-shadow 0.15s ease; display: inline-block;
   min-height: 44px; text-align: center;
 }
 .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(217, 119, 87, 0.5); }
 .btn-outline {
-  font-weight: 600; text-decoration: none; color: #fff; background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.5); padding: 0.9rem 1.8rem; border-radius: 14px; display: inline-block;
+  font-size: clamp(0.9rem, 1.1vw, 1rem); font-weight: 600; text-decoration: none; color: #fff; background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.5); padding: 0.9rem clamp(1.2rem, 2vw, 1.8rem); border-radius: 14px; display: inline-block;
   min-height: 44px; text-align: center; backdrop-filter: blur(4px);
 }
 .btn-outline:hover { background: rgba(255,255,255,0.18); }
@@ -379,13 +366,7 @@ onUnmounted(() => {
 .hero__arrow:hover { background: rgba(255,255,255,0.32); }
 .hero__arrow--prev { left: 1.25rem; }
 .hero__arrow--next { right: 1.25rem; }
-.hero__pause {
-  position: absolute; z-index: 2; right: 1rem; bottom: 0.7rem; min-height: 2.75rem;
-  border: 1px solid rgba(255,255,255,0.65); border-radius: 999px; padding: 0.45rem 0.8rem;
-  background: rgba(35,20,10,0.55); color: #fff; font: inherit; font-size: 0.75rem; cursor: pointer;
-}
-
-.hero__dots { position: relative; z-index: 1; display: flex; gap: 0.5rem; margin: 0 auto; padding: 0 1.25rem 1.5rem; }
+.hero__dots { position: absolute; z-index: 1; right: 0; bottom: 0; left: 0; display: flex; gap: 0.5rem; margin: 0 auto; padding: 0 1.25rem 1rem; }
 .hero__dot { width: 8px; height: 8px; border-radius: 999px; background: rgba(255,255,255,0.4); border: none; cursor: pointer; transition: all 0.2s ease; }
 .hero__dot.is-active { width: 26px; background: #fff; }
 .hero :is(button, a):focus-visible, .top-menu a:focus-visible, .sorotan a:focus-visible, .tentang a:focus-visible {
@@ -403,9 +384,9 @@ onUnmounted(() => {
 .top-menu__error p { margin: 0; }
 .top-menu__retry { border: none; background: var(--lb-accent); color: #fff; font-weight: 700; font-size: 0.85rem; padding: 0.65rem 1.4rem; border-radius: 999px; cursor: pointer; min-height: 44px; }
 
-.top-menu__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; align-items: stretch; }
+.top-menu__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; align-items: stretch; }
 
-.mie-card { position: relative; display: flex; flex-direction: column; height: 100%; background: #fff; padding: 1rem; border-radius: 28px 12px 28px 12px; box-shadow: 0 10px 24px rgba(61, 40, 23, 0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.mie-card { position: relative; display: flex; flex-direction: column; min-width: 0; height: 100%; background: #fff; padding: 1rem; border-radius: 28px 12px 28px 12px; box-shadow: 0 10px 24px rgba(61, 40, 23, 0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .mie-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(61, 40, 23, 0.12); }
 .mie-card--2, .mie-card--4 { border-radius: 12px 28px 12px 28px; }
 
@@ -477,12 +458,56 @@ onUnmounted(() => {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
+@media (max-width: 599px) {
+  .hero__inner { padding: 0 1.25rem 1.5rem; }
+  .hero__title { font-size: clamp(1.65rem, 7vw, 2.4rem); }
+  .hero__desc { font-size: 0.95rem; }
+  .hero .btn-cta,
+  .hero .btn-outline { padding: 0.75rem 1rem; }
+  .hero__badge { top: 0.9rem; right: 1rem; }
+  .top-menu__head { align-items: center; flex-wrap: nowrap; }
+  .top-menu__title { font-size: clamp(1.25rem, 5.5vw, 1.6rem); }
+  .top-menu__link { flex-shrink: 0; font-size: 0.78rem; }
+  .top-menu__grid {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.75rem;
+    padding: 0.25rem 0.1rem 1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .top-menu__grid > .mie-card,
+  .top-menu__grid > .lb-skeleton {
+    flex: 0 0 min(72vw, 230px);
+    scroll-snap-align: start;
+  }
+  .top-menu__kosong { flex: 0 0 100%; }
+  .sorotan__row {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+  .sorotan__row--reverse { flex-direction: row-reverse; }
+  .sorotan__foto-wrap { width: clamp(6rem, 32vw, 9rem); }
+  .sorotan__teks { flex: 1; min-width: 0; text-align: left; }
+  .sorotan__teks h3 { font-size: clamp(1rem, 4vw, 1.3rem); }
+  .sorotan__teks p { font-size: 0.8rem; }
+  .sorotan__link { font-size: 0.8rem; }
+  .mie-card__nama,
+  .mie-card__deskripsi { overflow-wrap: anywhere; }
+  .cara-pesan__title { font-size: clamp(1.55rem, 7vw, 1.8rem); }
+  .tentang { padding: 3rem 1.25rem; }
+}
+
+@media (max-width: 599px) and (max-height: 600px) {
+  .hero__inner { margin-top: 1.5rem; margin-bottom: 0; }
+}
+
 @media (max-width: 380px) {
-  .hero { min-height: 38rem; }
-  .hero__inner { padding-inline: 1rem; padding-bottom: 5rem; }
+  .hero__inner { padding-inline: 1rem; padding-bottom: 1.5rem; }
   .hero__title { font-size: clamp(1.8rem, 9vw, 2.4rem); }
   .hero__badge { top: 0.8rem; right: 0.8rem; }
-  .hero__actions > * { flex: 1 1 100%; }
   .hero__dots { margin-inline: 0; }
   .top-menu__grid { gap: 0.55rem; }
   .mie-card { padding: 0.7rem; border-radius: 18px 9px; }
@@ -492,19 +517,17 @@ onUnmounted(() => {
 
 /* ===== TABLET (600px ke atas) ===== */
 @media (min-width: 600px) and (max-width: 899px) {
-  .top-menu__grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .top-menu__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
   .cara-pesan__grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
   .hero__arrow { display: flex; }
 }
 
 /* ===== DESKTOP ===== */
 @media (min-width: 900px) {
-  .hero { min-height: 92vh; }
-  .hero__inner { padding: 0 3rem 6rem; }
   .hero__arrow { display: flex; }
   .hero__arrow--prev { left: 2rem; }
   .hero__arrow--next { right: 2rem; }
-  .hero__dots { padding: 0 3rem 2rem; }
+  .hero__dots { padding: 0 3rem 1rem; }
   .hero__badge { top: 2rem; right: 2rem; }
 
   .top-menu { padding: 1rem 3rem 4rem; }
@@ -516,5 +539,9 @@ onUnmounted(() => {
   .sorotan__row--reverse { flex-direction: row-reverse; }
   .sorotan__foto-wrap { width: 320px; }
   .sorotan__teks { text-align: left; max-width: 32ch; }
+}
+
+@media (max-height: 480px) and (min-width: 600px) {
+  .hero__inner { padding-bottom: 4rem; }
 }
 </style>

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api, { getImageUrl } from '@/services/api'
 import { useCartStore } from '../../store/cart'
+import PageHeader from '../../components/PageHeader.vue'
 
 const cart = useCartStore()
 const route = useRoute()
@@ -60,6 +61,17 @@ function tambahKeKeranjang(menu) {
   showToast(`${menu.nama_menu} ditambahkan`)
 }
 
+function kurangiDariKeranjang(menu) {
+  cart.updateQty(menu.id, qtyDiKeranjang(menu.id) - 1)
+}
+
+function onMenuCardKeydown(event, menu) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    tambahKeKeranjang(menu)
+  }
+}
+
 // ===== DATA =====
 async function loadData() {
   loading.value = true
@@ -80,15 +92,16 @@ onMounted(loadData)
 </script>
 
 <template>
-  <div class="w-full max-w-none px-4 sm:px-6 lg:px-8 2xl:px-10 py-6 pb-28">
-    <!-- Judul & info meja -->
-    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-      <h1 class="text-2xl font-extrabold text-terracotta-900">Menu</h1>
-    </div>
+  <div class="lb-wrap menu-page">
+    <PageHeader
+      eyebrow="Dari dapur LocalBowls"
+      title="Pilih Menu"
+      subtitle="Temukan hidangan favoritmu dan tambahkan ke keranjang."
+    />
 
     <!-- Pencarian -->
-    <div role="search" class="flex items-center gap-2 bg-white border border-terracotta-100 rounded-full px-4 py-2 mb-4 focus-within:ring-2 focus-within:ring-terracotta-600">
-      <svg aria-hidden="true" class="w-4 h-4 text-earth-dark/50 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.34-4.34M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+    <div role="search" class="menu-page__search">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.34-4.34M19 11a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
       <input
         id="menu-search"
         v-model="searchQuery"
@@ -96,18 +109,18 @@ onMounted(loadData)
         placeholder="Cari menu..."
         aria-label="Cari menu"
         autocomplete="off"
-        class="bg-transparent text-sm outline-none flex-1 text-earth-dark placeholder:text-earth-dark/40"
+        class="menu-page__search-input"
       />
     </div>
 
     <!-- Filter kategori -->
-    <nav aria-label="Filter kategori menu" class="flex gap-2 overflow-x-auto pb-2 mb-4">
+    <nav aria-label="Filter kategori menu" class="menu-page__filters">
       <button
         type="button"
         @click="activeKategori = 'semua'"
         :aria-pressed="activeKategori === 'semua'"
-        class="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta-700"
-        :class="activeKategori === 'semua' ? 'bg-terracotta-600 text-white' : 'bg-white text-earth-dark border border-terracotta-100'"
+        class="menu-page__filter"
+        :class="{ 'is-active': activeKategori === 'semua' }"
       >Semua</button>
       <button
         v-for="kat in kategoriList"
@@ -115,71 +128,90 @@ onMounted(loadData)
         type="button"
         @click="activeKategori = kat.id"
         :aria-pressed="activeKategori === kat.id"
-        class="shrink-0 px-4 py-2 rounded-full text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta-700"
-        :class="activeKategori === kat.id ? 'bg-terracotta-600 text-white' : 'bg-white text-earth-dark border border-terracotta-100'"
+        class="menu-page__filter"
+        :class="{ 'is-active': activeKategori === kat.id }"
       >{{ kat.nama_kategori }}</button>
     </nav>
 
     <!-- Status muat -->
-    <p v-if="loading" role="status" aria-live="polite" class="text-sm text-earth-dark/60 py-8 text-center">Memuat menu...</p>
+    <p v-if="loading" role="status" aria-live="polite" class="menu-page__message">Memuat menu...</p>
 
-    <div v-else-if="errorMsg" role="alert" class="text-center py-8">
-      <p class="text-sm text-earth-dark/70 mb-3">{{ errorMsg }}</p>
-      <button type="button" @click="loadData" class="min-h-11 text-sm font-bold px-4 py-2 rounded-full text-white bg-terracotta-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta-700">
+    <div v-else-if="errorMsg" role="alert" class="menu-page__message">
+      <p>{{ errorMsg }}</p>
+      <button type="button" @click="loadData" class="lb-btn-primary">
         Coba lagi
       </button>
     </div>
 
-    <p v-else-if="menuTampil.length === 0" role="status" class="text-sm text-earth-dark/60 py-8 text-center">
+    <p v-else-if="menuTampil.length === 0" role="status" class="menu-page__message">
       Tidak ada menu yang cocok. Coba kata kunci atau kategori lain.
     </p>
 
     <!-- Daftar menu -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+    <div v-else class="menu-page__grid">
       <article
         v-for="menu in menuTampil"
         :key="menu.id"
-        class="min-w-0 rounded-2xl p-4 bg-white border border-terracotta-100 flex flex-col"
+        class="lb-card menu-page__card"
         :class="{ 'opacity-60': !isTersedia(menu) }"
+        role="button"
+        tabindex="0"
+        @click="tambahKeKeranjang(menu)"
+        @keydown="onMenuCardKeydown($event, menu)"
       >
         <img
           :src="getGambarUrl(menu.gambar)"
           :alt="menu.nama_menu"
-          class="w-full h-40 rounded-xl object-cover mb-3"
+          class="menu-page__image"
           loading="lazy"
           @error="$event.target.src = FALLBACK_IMG"
         />
-        <h3 class="font-bold text-earth-dark">{{ menu.nama_menu }}</h3>
-        <p class="text-sm text-earth-dark/70 flex-1">{{ menu.deskripsi || 'Racikan rempah pilihan, disajikan hangat dari dapur.' }}</p>
+        <h3 class="menu-page__name">{{ menu.nama_menu }}</h3>
+        <p class="menu-page__description">{{ menu.deskripsi || 'Racikan rempah pilihan, disajikan hangat dari dapur.' }}</p>
 
-        <div class="flex items-center justify-between mt-3">
-          <span class="font-bold text-terracotta-700">Rp {{ formatHarga(menu.harga) }}</span>
+        <div class="menu-page__card-foot">
+          <span class="menu-page__price">Rp {{ formatHarga(menu.harga) }}</span>
 
-          <span v-if="!isTersedia(menu)" class="text-xs font-bold px-3 py-1 rounded-full text-white" style="background-color:var(--lb-danger);">
+          <span v-if="!isTersedia(menu)" class="menu-page__sold-out">
             Habis
           </span>
 
-          <div v-else class="flex items-center gap-2">
-            <span v-if="qtyDiKeranjang(menu.id) > 0" class="text-xs font-semibold text-earth-dark/70">
-              {{ qtyDiKeranjang(menu.id) }} di keranjang
-            </span>
+          <div v-else class="menu-page__add">
+            <div v-if="qtyDiKeranjang(menu.id) > 0" class="menu-page__quantity">
+              <button
+                type="button"
+                class="menu-page__quantity-button"
+                @click.stop="kurangiDariKeranjang(menu)"
+                :aria-label="`Kurangi ${menu.nama_menu} dari keranjang`"
+              >−</button>
+              <span class="menu-page__quantity-count" :aria-label="`${qtyDiKeranjang(menu.id)} ${menu.nama_menu} di keranjang`">
+                {{ qtyDiKeranjang(menu.id) }}
+              </span>
+              <button
+                type="button"
+                class="menu-page__quantity-button menu-page__quantity-button--plus"
+                @click.stop="tambahKeKeranjang(menu)"
+                :aria-label="`Tambah ${menu.nama_menu} ke keranjang`"
+              >+</button>
+            </div>
             <button
+              v-else
               type="button"
-              @click="tambahKeKeranjang(menu)"
-              class="w-11 h-11 rounded-full bg-terracotta-600 text-white flex items-center justify-center hover:bg-terracotta-700 transition shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta-700"
+              @click.stop="tambahKeKeranjang(menu)"
+              class="menu-page__add-button"
               :aria-label="`Tambah ${menu.nama_menu} ke keranjang`"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
           </div>
         </div>
-        </article>
+      </article>
     </div>
 
     <!-- Notifikasi kecil -->
     <div
       v-if="toast"
-      class="fixed left-1/2 -translate-x-1/2 bottom-24 z-40 bg-earth-dark text-white text-sm px-4 py-2 rounded-full shadow-lg"
+      class="menu-page__toast"
       role="status"
       aria-live="polite"
     >{{ toast }}</div>
@@ -189,10 +221,92 @@ onMounted(loadData)
       v-if="cart.totalItems > 0"
       :to="{ name: 'Keranjang' }"
       :aria-label="`Lihat keranjang, ${cart.totalItems} item, total Rp ${formatHarga(cart.totalHarga)}`"
-      class="fixed left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-full sm:max-w-md bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex min-h-12 items-center justify-between gap-3 bg-terracotta-600 text-white rounded-full px-4 sm:px-5 py-3 shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-earth-dark"
+      class="menu-page__cart-bar"
     >
       <span class="text-sm font-semibold">{{ cart.totalItems }} item</span>
       <span class="text-sm font-bold">Lihat Keranjang · Rp {{ formatHarga(cart.totalHarga) }}</span>
     </router-link>
   </div>
 </template>
+
+<style scoped>
+.menu-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) max(7rem, calc(5rem + env(safe-area-inset-bottom)));
+}
+.menu-page__search {
+  display: flex; align-items: center; gap: 0.7rem; min-height: 3.25rem;
+  margin-bottom: 1rem; padding: 0.55rem 1rem; border: 1px solid var(--lb-line);
+  border-radius: 999px; background: #fff; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.menu-page__search:focus-within { border-color: var(--lb-brand); box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.14); }
+.menu-page__search svg { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; color: var(--lb-muted); }
+.menu-page__search-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--lb-ink); font-size: 0.9rem; }
+.menu-page__search-input::placeholder { color: var(--lb-faint); }
+.menu-page__filters { display: flex; gap: 0.5rem; overflow-x: auto; margin-bottom: 1.25rem; padding: 0.15rem 0.1rem 0.45rem; scrollbar-width: thin; }
+.menu-page__filter {
+  flex: 0 0 auto; min-height: 2.5rem; padding: 0.55rem 1rem; border: 1px solid var(--lb-line);
+  border-radius: 999px; background: #fff; color: var(--lb-muted); font-size: 0.84rem; font-weight: 700; cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.menu-page__filter:hover { border-color: var(--lb-brand); color: var(--lb-ink); }
+.menu-page__filter.is-active { border-color: var(--lb-brand); background: var(--lb-brand); color: #fff; }
+.menu-page__message { display: grid; justify-items: center; gap: 0.75rem; padding: 3rem 1rem; color: var(--lb-muted); text-align: center; }
+.menu-page__message p { margin: 0; }
+.menu-page__grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 1rem; }
+.menu-page__card {
+  display: flex; min-width: 0; flex-direction: column; padding: 0.9rem; cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.menu-page__card:hover { transform: translateY(-2px); border-color: rgba(217, 119, 87, 0.35); box-shadow: 0 16px 36px -16px rgba(61, 40, 23, 0.28); }
+.menu-page__card:focus-visible { outline: 2px solid var(--lb-brand); outline-offset: 3px; }
+.menu-page__image { width: 100%; height: 11rem; margin-bottom: 0.75rem; border-radius: 14px; background: var(--lb-soft); object-fit: cover; }
+.menu-page__name { margin: 0 0 0.3rem; color: var(--lb-ink); font-size: 1rem; font-weight: 800; }
+.menu-page__description { flex: 1; margin: 0; color: var(--lb-muted); font-size: 0.84rem; line-height: 1.5; }
+.menu-page__card-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-top: 1rem; }
+.menu-page__price { color: var(--lb-brand-dark); font-size: 0.95rem; font-weight: 800; }
+.menu-page__sold-out { padding: 0.3rem 0.7rem; border-radius: 999px; background: var(--lb-red-bg); color: var(--lb-red-text); font-size: 0.72rem; font-weight: 800; }
+.menu-page__add { display: flex; align-items: center; gap: 0.55rem; }
+.menu-page__quantity { display: flex; align-items: center; gap: 0.55rem; }
+.menu-page__quantity-button { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border: 1px solid var(--lb-line); border-radius: 50%; background: #fff; color: var(--lb-brand-dark); font-size: 1.2rem; font-weight: 800; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.menu-page__quantity-button:hover { transform: translateY(-1px); background: var(--lb-soft); }
+.menu-page__quantity-button--plus { border-color: var(--lb-brand); background: var(--lb-brand); color: #fff; }
+.menu-page__quantity-button--plus:hover { background: var(--lb-brand-dark); }
+.menu-page__quantity-count { min-width: 1.25rem; color: var(--lb-ink); font-size: 0.9rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.menu-page__add-button { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; place-items: center; border: 0; border-radius: 50%; background: var(--lb-brand); color: #fff; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.menu-page__add-button:hover { transform: translateY(-1px); background: var(--lb-brand-dark); }
+.menu-page__add-button svg { width: 1.2rem; height: 1.2rem; }
+.menu-page__toast { position: fixed; z-index: 40; bottom: 6rem; left: 50%; transform: translateX(-50%); padding: 0.65rem 1rem; border-radius: 999px; background: var(--lb-ink); color: #fff; font-size: 0.85rem; box-shadow: var(--lb-shadow); white-space: nowrap; }
+.menu-page__cart-bar {
+  position: fixed; z-index: 30; right: 1rem; bottom: max(1rem, env(safe-area-inset-bottom)); left: 1rem;
+  display: flex; min-height: 3rem; align-items: center; justify-content: space-between; gap: 0.75rem;
+  padding: 0.75rem 1.1rem; border-radius: 999px; background: var(--lb-brand); color: #fff; text-decoration: none;
+  font-size: 0.84rem; box-shadow: 0 10px 26px rgba(61, 40, 23, 0.22); transition: background 0.15s, transform 0.15s;
+}
+.menu-page__cart-bar:hover { transform: translateY(-1px); background: var(--lb-brand-dark); }
+@media (max-width: 639px) {
+  .menu-page__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+  .menu-page__card { padding: 0.45rem; border-radius: 14px; }
+  .menu-page__image {
+    height: auto;
+    aspect-ratio: 1 / 1;
+    margin-bottom: 0.45rem;
+    border-radius: 10px;
+  }
+  .menu-page__name { font-size: 0.8rem; line-height: 1.25; overflow-wrap: anywhere; }
+  .menu-page__description { font-size: 0.68rem; line-height: 1.35; }
+  .menu-page__card-foot { align-items: flex-start; flex-direction: column; gap: 0.45rem; margin-top: 0.65rem; }
+  .menu-page__price { font-size: 0.75rem; }
+  .menu-page__quantity { gap: 0.3rem; }
+  .menu-page__quantity-button { width: 1.75rem; height: 1.75rem; font-size: 1rem; }
+  .menu-page__quantity-count { min-width: 0.8rem; font-size: 0.75rem; }
+  .menu-page__add-button { width: 2rem; height: 2rem; }
+  .menu-page__add-button svg { width: 1rem; height: 1rem; }
+}
+@media (min-width: 640px) { .menu-page__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .menu-page__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1200px) { .menu-page__grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 640px) { .menu-page__cart-bar { right: auto; left: 50%; width: min(100% - 3rem, 28rem); transform: translateX(-50%); } .menu-page__cart-bar:hover { transform: translate(-50%, -1px); } }
+</style>

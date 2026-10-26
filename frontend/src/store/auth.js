@@ -4,18 +4,18 @@ import api from '../services/api.js'
 
 function loadUser() {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    const user = JSON.parse(sessionStorage.getItem('user') || 'null')
     return user && typeof user === 'object' ? user : null
   } catch {
-    localStorage.removeItem('user')
+    sessionStorage.removeItem('user')
     return null
   }
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // State (dipulihkan dari localStorage supaya login bertahan saat refresh)
+  // Sesi per tab mencegah login role lain menimpa token dashboard yang sedang terbuka.
   const user = ref(loadUser())
-  const token = ref(localStorage.getItem('authToken') || null)
+  const token = ref(sessionStorage.getItem('authToken') || null)
 
   const isAuthenticated = computed(() => !!token.value)
 
@@ -26,9 +26,12 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = res.token
     user.value = res.user
 
-    localStorage.setItem('authToken', res.token)
-    localStorage.setItem('user', JSON.stringify(res.user))
-    localStorage.setItem('nama_user', res.user?.nama || '')
+    sessionStorage.setItem('authToken', res.token)
+    sessionStorage.setItem('user', JSON.stringify(res.user))
+    sessionStorage.setItem('nama_user', res.user?.nama || '')
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
+    localStorage.removeItem('nama_user')
 
     return res.user
   }
@@ -42,9 +45,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     token.value = null
     user.value = null
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('user')
-    localStorage.removeItem('nama_user')
+    sessionStorage.removeItem('authToken')
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('nama_user')
   }
 
   // Halaman dashboard sesuai role user yang login

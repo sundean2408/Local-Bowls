@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api, { getImageUrl } from '../../services/api'
 import { formatAppTime } from '@/utils/dateTime'
+import PageHeader from '../../components/PageHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -89,20 +90,17 @@ onUnmounted(() => {
 
 <template>
   <div class="stat-page">
-    <!-- Header -->
-    <div class="stat-header">
-      <div class="stat-header__inner">
-        <button type="button" @click="kembali" class="stat-back" aria-label="Kembali">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <div>
-          <h1 class="stat-header__title">Status Pesanan</h1>
-          <p class="stat-header__sub">Pesanan kamu sedang diproses</p>
-        </div>
-      </div>
-    </div>
-
     <div class="stat-body">
+      <PageHeader
+        eyebrow="Pantau pesanan"
+        title="Status Pesanan"
+        subtitle="Pesanan kamu sedang diproses"
+      >
+        <template #action>
+          <button type="button" @click="kembali" class="lb-btn-ghost">Kembali</button>
+        </template>
+      </PageHeader>
+
       <!-- Loading -->
       <div v-if="loading" class="stat-loading" role="status" aria-live="polite">
         <div class="lb-spinner"></div>
@@ -123,7 +121,7 @@ onUnmounted(() => {
 
       <!-- Orders -->
       <div v-else class="stat-orders">
-        <article v-for="pesanan in pesananList" :key="pesanan.id" class="stat-order">
+        <article v-for="pesanan in pesananList" :key="pesanan.id" class="lb-card stat-order">
 
           <!-- Info card -->
           <div class="stat-info">
@@ -190,21 +188,15 @@ onUnmounted(() => {
 <style scoped>
 .stat-page { min-height: 100vh; background: var(--lb-bg); color: var(--lb-ink); }
 
-.stat-header { position: sticky; top: 0; z-index: 20; background: var(--lb-bg); border-bottom: 1px solid var(--lb-line); padding: 0.75rem clamp(0.75rem, 4vw, 1.5rem); }
-.stat-header__inner { display: flex; align-items: center; gap: 1rem; max-width: 56rem; margin: 0 auto; }
-.stat-back { width: 2.75rem; height: 2.75rem; border-radius: 50%; border: none; background: rgba(217,119,87,0.1); cursor: pointer; display: grid; place-items: center; flex-shrink: 0; }
-.stat-back svg { width: 1.25rem; height: 1.25rem; color: var(--lb-ink); }
-.stat-header__title { margin: 0; font-size: 1.3rem; font-weight: 800; }
-.stat-header__sub { margin: 0; font-size: 0.82rem; color: var(--lb-muted); }
-
-.stat-body { max-width: 56rem; margin: 0 auto; padding: clamp(1rem, 4vw, 1.5rem) clamp(0.75rem, 4vw, 1.5rem) 6rem; }
+.stat-body { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1rem 6rem; }
 .stat-loading { text-align: center; padding: 4rem 0; color: var(--lb-muted); }
 .stat-loading p { margin: 0; }
 .stat-center { text-align: center; display: grid; gap: 1rem; }
 .stat-empty-title { margin: 0 0 1rem; font-weight: 800; font-size: 1.1rem; }
 
 .stat-orders { display: grid; gap: 2rem; }
-.stat-order { display: grid; gap: 1rem; }
+.stat-order { display: grid; gap: 1rem; padding: 1rem; }
+@media (min-width: 640px) { .stat-body { padding: 2rem 1.5rem 6rem; } .stat-order { padding: 1.25rem; } }
 
 /* Info card */
 .stat-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 1rem; background: var(--lb-soft); border-radius: 18px; padding: 1.25rem; }

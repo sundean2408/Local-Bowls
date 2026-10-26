@@ -9,7 +9,7 @@ class ApiService {
 
   // Helper method untuk add authorization header
   getHeaders(isMultipart = false) {
-    const token = localStorage.getItem('authToken')
+    const token = sessionStorage.getItem('authToken')
     return {
       ...(!isMultipart && { 'Content-Type': 'application/json' }),
       'Accept': 'application/json', // penting: kalau tidak ada, Laravel bisa redirect (bukan 401 JSON) saat auth gagal
@@ -112,13 +112,17 @@ class ApiService {
   async handleResponse(response) {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
-      // Auto-logout kalau token expired / role ditolak, biar tidak stuck
-      if ([401, 403].includes(response.status)) {
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('user')
-        localStorage.removeItem('nama_user')
+      // Hanya sesi yang tidak terautentikasi yang dibersihkan; 403 bisa
+      // berarti role tidak berhak, bukan tokennya kedaluwarsa.
+      if (response.status === 401) {
+        sessionStorage.removeItem('authToken')
+        sessionStorage.removeItem('user')
+        sessionStorage.removeItem('nama_user')
       }
-      const message = error.message || (error.errors ? JSON.stringify(error.errors) : '') || `HTTP ${response.status}`
+      const validationMessage = error.errors
+        ? Object.values(error.errors).flat().find((item) => typeof item === 'string')
+        : ''
+      const message = validationMessage || error.message || `HTTP ${response.status}`
       throw new Error(message)
     }
     return await response.json()

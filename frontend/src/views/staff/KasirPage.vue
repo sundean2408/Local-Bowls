@@ -129,10 +129,11 @@ async function konfirmasiBayar() {
     const nomorStruk = generateNomorStruk(pesanan.id)
     const waktuBayar = new Date()
     const totalBayar = Number(nominal.value)
+    const totalTagihan = Number(pesanan.total_harga)
     await api.post('/pembayaran', {
       id_pesanan: pesanan.id,
       metode_pembayaran: 'tunai',
-      total_bayar: totalBayar,
+      total_bayar: totalTagihan,
       nomor_struk_digital: nomorStruk,
     })
     daftarPesanan.value = daftarPesanan.value.filter((p) => p.id !== pesanan.id)
@@ -152,7 +153,7 @@ async function konfirmasiBayar() {
     else { selectedId.value = null }
     daftarRiwayat.value = []
   } catch (e) {
-    errorPerKartu.value[pesanan.id] = e.response?.data?.message || 'Gagal konfirmasi pembayaran. Coba lagi.'
+    errorPerKartu.value[pesanan.id] = e.message || 'Gagal konfirmasi pembayaran. Coba lagi.'
     console.error(e)
   } finally { submitting.value[pesanan.id] = false }
 }
@@ -325,43 +326,95 @@ onUnmounted(() => { if (pollId) clearInterval(pollId) })
           <div><p class="pos__section-kicker">PEMBAYARAN SELESAI</p><h2>Riwayat Transaksi</h2></div>
           <span class="pos__ledger-count">{{ daftarRiwayat.length }} transaksi</span>
         </header>
-        <table>
-          <thead><tr><th>No. Struk</th><th>Order</th><th>Waktu</th><th>Metode</th><th class="is-num">Total</th><th><span class="sr-only">Aksi</span></th></tr></thead>
-          <tbody>
-            <tr v-for="trx in daftarRiwayat" :key="trx.id">
-              <td class="is-mono">{{ trx.nomor_struk_digital }}</td>
-              <td>#{{ String(trx.pesanan?.id ?? trx.id).padStart(3, '0') }} · {{ trx.pesanan?.nama_pelanggan || 'Tamu' }} · M{{ trx.pesanan?.meja?.nomor_meja ?? '—' }}</td>
-              <td class="is-mono">{{ formatTanggalRiwayat(trx.tanggal_bayar) }}</td>
-              <td><span class="pos__m">{{ trx.metode_pembayaran?.toUpperCase() }}</span></td>
-              <td class="is-num"><strong>Rp {{ fmt(trx.total_bayar) }}</strong></td>
-              <td class="is-num"><button type="button" class="pos__link" @click="lihatStrukRiwayat(trx)">Struk</button></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="pos__ledger-table-wrap" role="region" aria-label="Tabel riwayat transaksi" tabindex="0">
+          <table>
+            <thead><tr><th>No. Struk</th><th>Order</th><th>Waktu</th><th>Metode</th><th class="is-num">Total</th><th><span class="sr-only">Aksi</span></th></tr></thead>
+            <tbody>
+              <tr v-for="trx in daftarRiwayat" :key="trx.id">
+                <td class="is-mono">{{ trx.nomor_struk_digital }}</td>
+                <td>#{{ String(trx.pesanan?.id ?? trx.id).padStart(3, '0') }} · {{ trx.pesanan?.nama_pelanggan || 'Tamu' }} · M{{ trx.pesanan?.meja?.nomor_meja ?? '—' }}</td>
+                <td class="is-mono">{{ formatTanggalRiwayat(trx.tanggal_bayar) }}</td>
+                <td><span class="pos__m">{{ trx.metode_pembayaran?.toUpperCase() }}</span></td>
+                <td class="is-num"><strong>Rp {{ fmt(trx.total_bayar) }}</strong></td>
+                <td class="is-num"><button type="button" class="pos__link" @click="lihatStrukRiwayat(trx)">Struk</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
 
-    <div v-if="strukAktif" class="pos__overlay" @click.self="tutupStruk">
-      <div class="pos__modal" role="dialog" aria-modal="true" aria-label="Struk pembayaran">
-        <div class="pos__receipt">
-          <p class="pos__r-brand">LOCAL BOWLS</p>
-          <p class="pos__r-sub">{{ strukAktif.nomor_struk }} · {{ strukAktif.waktu_bayar }}</p>
-          <p class="pos__r-sub">#{{ String(strukAktif.id).padStart(3, '0') }} · {{ strukAktif.nama_pelanggan || 'Tamu' }} · Meja {{ strukAktif.meja?.nomor_meja ?? '—' }}</p>
-          <hr />
-          <div v-for="d in strukAktif.detail_pesanan" :key="d.id" class="pos__r-line">
-            <span>{{ d.jumlah }}× {{ d.menu?.nama_menu ?? 'Menu' }}</span><span>Rp {{ fmt(d.subtotal) }}</span>
+    <Teleport to="body">
+      <div v-if="strukAktif" class="pos__overlay" @click.self="tutupStruk">
+        <div class="pos__modal" role="dialog" aria-modal="true" aria-label="Struk pembayaran">
+          <div class="pos__receipt">
+            <header class="pos__r-header">
+              <div class="pos__r-brand-row">
+                <img src="/logo.png" alt="" class="pos__r-logo" />
+                <div>
+                  <p class="pos__r-brand">LocalBowls</p>
+                  <p class="pos__r-tagline">Hangat di setiap mangkuk</p>
+                </div>
+              </div>
+              <div class="pos__r-status">
+                <span aria-hidden="true">✓</span>
+                <div><strong>Pembayaran berhasil</strong><small>Bukti pembayaran digital</small></div>
+              </div>
+            </header>
+
+            <div class="pos__r-meta">
+              <div class="pos__r-meta-id"><span>No. struk</span><strong>{{ strukAktif.nomor_struk }}</strong></div>
+              <div><span>Waktu transaksi</span><strong>{{ strukAktif.waktu_bayar }}</strong></div>
+              <div><span>No. pesanan</span><strong>#{{ String(strukAktif.id).padStart(3, '0') }}</strong></div>
+              <div><span>Pelanggan</span><strong>{{ strukAktif.nama_pelanggan || 'Tamu' }}</strong></div>
+              <div><span>Meja</span><strong>{{ strukAktif.meja?.nomor_meja ?? '—' }}</strong></div>
+            </div>
+
+            <section class="pos__r-items" aria-label="Rincian pesanan">
+              <p class="pos__r-section-title">Rincian Pesanan</p>
+              <div v-for="d in strukAktif.detail_pesanan" :key="d.id" class="pos__r-item">
+                <div class="pos__r-item-main">
+                  <span class="pos__r-item-name">{{ d.menu?.nama_menu ?? 'Menu' }}</span>
+                  <span class="pos__r-item-qty">{{ d.jumlah }} porsi</span>
+                </div>
+                <strong class="pos__r-item-price">Rp {{ fmt(d.subtotal) }}</strong>
+              </div>
+            </section>
+
+            <div class="pos__r-totals" aria-label="Rincian pembayaran">
+              <div class="pos__r-total-row pos__r-total-row--due">
+                <span>Yang harus dibayar</span>
+                <strong>Rp {{ fmt(strukAktif.total_harga) }}</strong>
+              </div>
+              <template v-if="strukAktif.diterima != null">
+                <div class="pos__r-total-row">
+                  <span>Dibayar tunai</span>
+                  <strong>Rp {{ fmt(strukAktif.diterima) }}</strong>
+                </div>
+                <div class="pos__r-total-row pos__r-total-row--change">
+                  <span>Kembalian</span>
+                  <strong>Rp {{ fmt(Math.max(0, strukAktif.kembali ?? 0)) }}</strong>
+                </div>
+              </template>
+            </div>
+
+            <div class="pos__r-payment">
+              <span>Metode pembayaran</span>
+              <strong>{{ strukAktif.metode ?? 'Tunai' }}</strong>
+            </div>
+
+            <footer class="pos__r-footer">
+              <p>Terima kasih sudah memesan di LocalBowls.</p>
+              <span>Semoga harimu menyenangkan ✦</span>
+            </footer>
           </div>
-          <hr />
-          <p class="pos__r-total"><span>Total</span><strong>Rp {{ fmt(strukAktif.total_harga) }}</strong></p>
-          <p class="pos__r-sub">{{ strukAktif.metode ?? 'Tunai' }}{{ strukAktif.diterima != null ? ` · Diterima Rp ${fmt(strukAktif.diterima)} · Kembali Rp ${fmt(Math.max(0, strukAktif.kembali ?? 0))}` : '' }}</p>
-          <p class="pos__r-thanks">Terima kasih.</p>
-        </div>
-        <div class="pos__modal-actions no-print">
-          <button type="button" class="lb-btn-ghost" @click="tutupStruk">Tutup</button>
-          <button type="button" class="lb-btn-primary" @click="cetakStruk">Cetak</button>
+          <div class="pos__modal-actions no-print">
+            <button type="button" class="lb-btn-ghost" @click="tutupStruk">Tutup</button>
+            <button type="button" class="lb-btn-primary" @click="cetakStruk">Cetak</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -480,15 +533,52 @@ onUnmounted(() => { if (pollId) clearInterval(pollId) })
 .is-mono { font-family: ui-monospace, monospace; font-size: 0.78rem; }
 .pos__m { font-size: 0.7rem; font-weight: 800; background: #F1E7D7; padding: 0.2rem 0.5rem; border-radius: 6px; }
 .pos__link { background: none; border: none; color: var(--lb-brand-dark); font-weight: 800; cursor: pointer; font-size: 0.8rem; }
-.pos__overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(20,12,6,0.6); }
-.pos__modal { width: 100%; max-width: 20rem; }
-.pos__receipt { background: #fff; border-radius: 8px; padding: 1.25rem; font-family: ui-monospace, monospace; font-size: 0.75rem; max-height: 70vh; overflow-y: auto; }
-.pos__r-brand { text-align: center; font-weight: 800; letter-spacing: 0.1em; margin: 0; }
-.pos__r-sub { text-align: center; color: #666; margin: 0.25rem 0 0; }
-.pos__receipt hr { border: none; border-top: 1px dashed #ccc; margin: 0.75rem 0; }
-.pos__r-line { display: flex; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; }
-.pos__r-total { display: flex; justify-content: space-between; font-size: 0.9rem; margin: 0; }
-.pos__r-thanks { text-align: center; margin: 0.75rem 0 0; }
+.pos__overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(34, 24, 17, 0.58); backdrop-filter: blur(5px); }
+.pos__modal { width: 100%; max-width: 27rem; }
+.pos__receipt {
+  position: relative; max-height: 72vh; overflow-y: auto; padding: 1.35rem;
+  border: 1px solid rgba(61, 40, 23, 0.08); border-top: 3px solid var(--lb-brand); border-radius: 1.4rem;
+  background: linear-gradient(180deg, #fff 0%, #fffdf9 100%); color: var(--lb-ink);
+  box-shadow: 0 28px 80px rgba(20, 12, 6, 0.28), 0 2px 10px rgba(20, 12, 6, 0.06);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.82rem;
+}
+.pos__r-header { display: grid; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f0e8df; }
+.pos__r-brand-row { display: flex; align-items: center; gap: 0.65rem; }
+.pos__r-logo { width: 2.5rem; height: 2.5rem; flex: 0 0 auto; border: 1px solid var(--lb-line); border-radius: 50%; background: #fff; object-fit: cover; }
+.pos__r-brand { margin: 0; color: var(--lb-ink); font-family: 'Fraunces', Georgia, serif; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.015em; }
+.pos__r-tagline { margin: 0.12rem 0 0; color: var(--lb-faint); font-size: 0.68rem; }
+.pos__r-status { display: flex; align-items: center; gap: 0.65rem; padding: 0.7rem 0.8rem; border: 1px solid #d9efe0; border-radius: 0.9rem; background: #f3fbf5; color: #17653a; }
+.pos__r-status > span { display: grid; width: 1.8rem; height: 1.8rem; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #d8f3df; font-size: 0.9rem; font-weight: 900; }
+.pos__r-status div { display: grid; gap: 0.08rem; }
+.pos__r-status strong { font-size: 0.76rem; }
+.pos__r-status small { color: #578366; font-size: 0.65rem; }
+.pos__r-meta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.75rem; padding: 1rem 0; border-bottom: 1px solid #f0e8df; }
+.pos__r-meta div, .pos__r-payment div { display: grid; min-width: 0; gap: 0.18rem; }
+.pos__r-meta span, .pos__r-payment span { color: var(--lb-faint); font-size: 0.67rem; font-weight: 700; }
+.pos__r-meta strong { overflow-wrap: anywhere; color: var(--lb-ink); font-size: 0.75rem; font-weight: 700; }
+.pos__r-meta .pos__r-meta-id { grid-column: 1 / -1; padding: 0.6rem 0.7rem; border-radius: 0.75rem; background: #f8f4ee; }
+.pos__r-meta-id strong { font-family: ui-monospace, monospace; font-size: 0.7rem; }
+.pos__r-items { padding: 1rem 0 0.8rem; }
+.pos__r-section-title { margin: 0 0 0.45rem; color: var(--lb-brand-dark); font-size: 0.63rem; font-weight: 850; letter-spacing: 0.11em; text-transform: uppercase; }
+.pos__r-item { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.65rem 0; border-bottom: 1px solid #f3ede6; }
+.pos__r-item:last-child { border-bottom: 0; }
+.pos__r-item-main { display: grid; min-width: 0; gap: 0.2rem; }
+.pos__r-item-name { overflow-wrap: anywhere; color: var(--lb-ink); font-weight: 700; }
+.pos__r-item-qty { color: var(--lb-muted); font-size: 0.68rem; }
+.pos__r-item-price { flex: 0 0 auto; color: var(--lb-ink); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.pos__r-totals { display: grid; gap: 0; margin-top: 0.2rem; padding: 0.9rem 0 0.15rem; border-top: 1px solid #e9e1d8; }
+.pos__r-total-row { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.42rem 0; color: #76695e; font-size: 0.74rem; }
+.pos__r-total-row strong { color: #392c22; font-size: 0.76rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pos__r-total-row--due { align-items: center; padding: 0 0 0.8rem; color: #514236; font-size: 0.78rem; font-weight: 750; }
+.pos__r-total-row--due strong { color: #bd5f3e; font-size: 1.45rem; font-weight: 850; letter-spacing: -0.045em; }
+.pos__r-total-row--change { margin-top: 0.2rem; padding: 0.65rem 0 0.15rem; border-top: 1px dashed #d9d0c5; color: #356b4b; font-weight: 750; }
+.pos__r-total-row--change strong { color: #286440; font-weight: 800; }
+.pos__r-payment { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.85rem 0; border-bottom: 1px solid #f0e8df; }
+.pos__r-payment span { color: var(--lb-faint); font-size: 0.68rem; font-weight: 700; }
+.pos__r-payment strong { color: var(--lb-ink); font-size: 0.74rem; font-weight: 800; }
+.pos__r-footer { display: grid; justify-items: center; gap: 0.22rem; padding: 0.85rem 0 0; text-align: center; }
+.pos__r-footer p { margin: 0; color: var(--lb-muted); font-size: 0.72rem; font-weight: 700; }
+.pos__r-footer span { color: var(--lb-faint); font-size: 0.65rem; }
 .pos__modal-actions { display: flex; gap: 0.6rem; margin-top: 0.75rem; }
 .pos__modal-actions > * { flex: 1; }
 .pos { min-width: 0; }
@@ -556,6 +646,8 @@ onUnmounted(() => { if (pollId) clearInterval(pollId) })
 .pos__empty-title { font-size: 1rem; }
 .pos__empty-sub { line-height: 1.6; }
 .pos__ledger { overflow: hidden; }
+.pos__ledger-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.pos__ledger-table-wrap:focus-visible { outline: 2px solid var(--lb-brand); outline-offset: -2px; }
 .pos__ledger-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.2rem 1.25rem; border-bottom: 1px solid var(--lb-line); }
 .pos__ledger-count { padding: 0.38rem 0.65rem; border-radius: 999px; background: #f5eadb; color: var(--lb-brand-dark); font-size: 0.72rem; font-weight: 800; white-space: nowrap; }
 .pos__ledger table { min-width: 700px; }
@@ -569,9 +661,6 @@ onUnmounted(() => { if (pollId) clearInterval(pollId) })
 .pos__link:hover { background: #f5eadb; }
 .pos__overlay { backdrop-filter: blur(4px); }
 .pos__modal { max-height: calc(100vh - 2rem); }
-.pos__receipt { border: 1px solid rgba(255,255,255,0.7); border-radius: 14px; box-shadow: 0 24px 70px rgba(20,12,6,0.25); }
-.pos__r-brand { font-size: 1rem; }
-.pos__r-sub { line-height: 1.5; overflow-wrap: anywhere; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (min-width: 960px) {
   .pos__queue { position: sticky; top: 1rem; max-height: min(72vh, 52rem); padding: 1.15rem; }
@@ -604,12 +693,19 @@ onUnmounted(() => { if (pollId) clearInterval(pollId) })
   .pos *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
 }
 @media print {
-  :global(body *) { visibility: hidden; }
-  :global(body) { margin: 0; }
-  .pos__overlay { position: static; display: block; padding: 0; background: none; }
+  @page { margin: 0; }
+  :global(html), :global(body) { width: 72mm; min-width: 0; height: auto; min-height: 0; margin: 0 !important; padding: 0 !important; overflow: visible; background: #fff; }
+  :global(body > #app) { display: none !important; }
+  :global(body > .pos__overlay) { position: absolute; inset: 0 auto auto 0; display: block; width: 72mm; height: auto; margin: 0; padding: 0; background: #fff; }
+  .pos__overlay { position: absolute; inset: 0 auto auto 0; display: block; width: 72mm; height: auto; padding: 0; background: #fff; }
+  .pos__modal { width: 72mm; max-width: none; max-height: none; margin: 0; }
   .no-print { display: none !important; }
-  .pos__receipt,
-  .pos__receipt * { visibility: visible; }
-  .pos__receipt { position: absolute; inset: 0 auto auto 0; width: 72mm; max-height: none; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+  .pos__receipt { position: static; box-sizing: border-box; width: 72mm; max-height: none; overflow: visible; padding: 5mm; border: 0; border-top: 2mm solid #000; border-radius: 0; box-shadow: none; background: #fff; color: #000; font-size: 9pt; }
+  .pos__r-logo { width: 12mm; height: 12mm; }
+  .pos__r-brand { color: #000; font-size: 16pt; }
+  .pos__r-meta strong, .pos__r-item-name, .pos__r-item-price, .pos__r-total-row, .pos__r-total-row strong, .pos__r-payment strong { color: #000; }
+  .pos__r-totals { border-top-color: #999; }
+  .pos__r-total-row--change { border-color: #999; }
+  .pos__r-footer strong { color: #000; }
 }
 </style>

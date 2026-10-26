@@ -50,11 +50,7 @@ function lanjutKonfirmasi() {
       eyebrow="Sebelum pesan"
       title="Keranjang Kamu"
       :subtitle="items.length ? `${totalQty} item · Rp ${fmt(totalHarga)}` : 'Pilih menu favoritmu dulu'"
-    >
-      <template #action>
-        <router-link to="/menu" class="lb-btn-ghost keranjang__back">+ Pesan Lagi</router-link>
-      </template>
-    </PageHeader>
+    />
 
     <div v-if="items.length === 0" class="lb-empty" role="status">
       <img src="/logo.png" alt="LocalBowls" class="keranjang__logo" />
@@ -98,7 +94,6 @@ function lanjutKonfirmasi() {
 
 <style scoped>
 .keranjang { padding-block: 0.5rem 3rem; }
-.keranjang__back { text-decoration: none; }
 .keranjang__logo { width: 4.5rem; height: 4.5rem; object-fit: contain; margin: 0 auto 1rem; }
 .keranjang__empty-title { margin: 0; font-weight: 800; color: var(--lb-ink); }
 .keranjang__empty-sub { margin: 0.25rem 0 1rem; font-size: 0.88rem; }

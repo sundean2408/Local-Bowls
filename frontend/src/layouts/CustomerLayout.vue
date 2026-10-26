@@ -54,7 +54,10 @@
           <p class="lb-footer__muted">Yogyakarta, Indonesia<br />info@localbowls.id</p>
         </div>
       </div>
-      <div class="lb-footer__copy">&copy; {{ currentYear }} LocalBowls · Rasa Lokal untuk Semua</div>
+      <div class="lb-footer__copy">
+        <span>&copy; {{ currentYear }} LocalBowls · Rasa Lokal untuk Semua</span>
+        <router-link to="/login" class="lb-footer__staff-login">Login Staf</router-link>
+      </div>
     </footer>
   </div>
 </template>
@@ -78,10 +81,14 @@ const currentYear = new Date().getFullYear()
   border-bottom: 1px solid var(--lb-line);
 }
 .lb-nav__inner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
   padding-block: 0.85rem;
 }
 .lb-nav__brand {
@@ -250,10 +257,30 @@ const currentYear = new Date().getFullYear()
 .lb-footer__links a:hover { opacity: 1; color: #fff; text-decoration: underline; text-underline-offset: 3px; }
 .lb-footer__copy {
   border-top: 1px solid rgba(255,255,255,0.12);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 72rem;
+  margin-inline: auto;
   padding: 1rem;
   font-size: 0.78rem;
   opacity: 0.6;
+}
+.lb-footer__staff-login {
+  flex-shrink: 0;
+  color: inherit;
+  font-size: 0.72rem;
+  text-decoration: none;
+}
+.lb-footer__staff-login:hover {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.lb-footer__staff-login:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }
 @media (min-width: 820px) {
   .lb-nav__links { display: flex; }
